@@ -8,6 +8,7 @@ export interface CommitData {
   authorAvatar: string;
   date: string;
   stats: { additions: number; deletions: number; total: number };
+  filesChanged: number;
 }
 
 export interface RepoInfo {

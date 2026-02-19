@@ -27,7 +27,7 @@ function CameraController({ targetY }: { targetY: number }) {
   useEffect(() => {
     if (controlsRef.current) {
       controlsRef.current.target.set(0, targetY, 0);
-      controlsRef.current.object.position.set(8, targetY + 5, 8);
+      controlsRef.current.object.position.set(5, targetY + 2, 5);
       controlsRef.current.update();
     }
     // Only on mount
@@ -54,7 +54,7 @@ function CameraController({ targetY }: { targetY: number }) {
       autoRotateSpeed={0.5}
       enableZoom
       enablePan={false}
-      minDistance={5}
+      minDistance={3}
       maxDistance={25}
     />
   );
@@ -64,7 +64,7 @@ export function CommitScene({ layout, floorY, targetY }: CommitSceneProps) {
   return (
     <Canvas
       shadows
-      camera={{ position: [8, targetY + 5, 8], fov: 50 }}
+      camera={{ position: [5, targetY + 2, 5], fov: 50 }}
       gl={{ antialias: true, toneMapping: 0 }}
       style={{ width: "100%", height: "100%" }}
     >
