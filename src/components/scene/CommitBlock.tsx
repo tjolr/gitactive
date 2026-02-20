@@ -126,6 +126,70 @@ function AvatarCylinder({ url, position }: { url: string; position: [number, num
   );
 }
 
+const STATS_SIZE = 0.09;
+const STATS_BEVEL = { bevelEnabled: true, bevelThickness: 0.003, bevelSize: 0.002, bevelSegments: 2 };
+const GREEN = 0x3fb950;
+const RED = 0xf85149;
+const STAT_GREY = 0x8b949e;
+
+function FileStatsface({ commit, height, textDepth }: { commit: CommitData; height: number; textDepth: number }) {
+  const filesText = `${commit.filesChanged} files changed`;
+  const addText = `+${commit.stats.additions}`;
+  const delText = `-${commit.stats.deletions}`;
+  const linesText = "lines changed";
+
+  const cw = STATS_SIZE * 0.62;
+  const gap = STATS_SIZE * 0.5;
+
+  // Top line: "N files changed" centered
+  const filesW = filesText.length * cw;
+
+  // Bottom line: "+N -N lines changed" laid out horizontally
+  const addW = addText.length * cw;
+  const delW = delText.length * cw;
+  const linesW = linesText.length * cw;
+  const bottomW = addW + gap * 0.5 + delW + gap + linesW;
+
+  const topY = STATS_SIZE * 0.4;
+  const bottomY = -STATS_SIZE * 0.9;
+
+  return (
+    <group>
+      {/* files changed — top line, centered */}
+      <group position={[-filesW / 2, topY, 0]}>
+        <Text3D font="/helvetiker_bold.typeface.json" size={STATS_SIZE} height={textDepth} {...STATS_BEVEL}>
+          {filesText}
+          <meshStandardMaterial color={0xffffff} metalness={0.1} roughness={0.5} emissive={0xffffff} emissiveIntensity={0.1} />
+        </Text3D>
+      </group>
+      {/* bottom line: +N  -N  lines changed */}
+      <group position={[-bottomW / 2, bottomY, 0]}>
+        {/* additions */}
+        <group position={[0, 0, 0]}>
+          <Text3D font="/helvetiker_bold.typeface.json" size={STATS_SIZE} height={textDepth} {...STATS_BEVEL}>
+            {addText}
+            <meshStandardMaterial color={GREEN} metalness={0.1} roughness={0.5} emissive={GREEN} emissiveIntensity={0.25} />
+          </Text3D>
+        </group>
+        {/* deletions */}
+        <group position={[addW + gap * 0.5, 0, 0]}>
+          <Text3D font="/helvetiker_bold.typeface.json" size={STATS_SIZE} height={textDepth} {...STATS_BEVEL}>
+            {delText}
+            <meshStandardMaterial color={RED} metalness={0.1} roughness={0.5} emissive={RED} emissiveIntensity={0.25} />
+          </Text3D>
+        </group>
+        {/* "lines changed" */}
+        <group position={[addW + gap * 0.5 + delW + gap, 0, 0]}>
+          <Text3D font="/helvetiker_bold.typeface.json" size={STATS_SIZE} height={textDepth} {...STATS_BEVEL}>
+            {linesText}
+            <meshStandardMaterial color={STAT_GREY} metalness={0.1} roughness={0.5} emissive={STAT_GREY} emissiveIntensity={0.1} />
+          </Text3D>
+        </group>
+      </group>
+    </group>
+  );
+}
+
 function FaceContent({
   commit,
   color,
@@ -199,6 +263,7 @@ function FaceContent({
           </Text3D>
         </Center>
       </group>
+
     </>
   );
 }
@@ -269,6 +334,11 @@ export function CommitBlock({ commit, position, height }: CommitBlockProps) {
           <TechLogoMedallion language={commit.primaryLanguage} />
         </group>
       )}
+
+      {/* Right face — file stats */}
+      <group position={[BLOCK_WIDTH / 2 + 0.01, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
+        <FileStatsface commit={commit} height={height} textDepth={textDepth} />
+      </group>
 
       {/* Hover tooltip */}
       {hovered && (
