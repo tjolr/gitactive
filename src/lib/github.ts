@@ -31,7 +31,7 @@ interface GitHubCommitListItem {
 
 interface GitHubCommitDetail {
   stats: { additions: number; deletions: number; total: number };
-  files: { filename: string }[];
+  files: { filename: string; additions: number; deletions: number; changes: number }[];
 }
 
 async function fetchJSON<T>(url: string, token?: string): Promise<T> {
@@ -79,9 +79,15 @@ export async function fetchCommits(
             `${baseUrl}/commits/${c.sha}`,
             token
           );
-          return { stats: detail.stats, filesChanged: detail.files?.length ?? 0 };
+          const files = (detail.files ?? []).map((f) => ({
+            filename: f.filename,
+            additions: f.additions,
+            deletions: f.deletions,
+            changes: f.changes,
+          }));
+          return { stats: detail.stats, filesChanged: files.length, files };
         } catch {
-          return { stats: { additions: 0, deletions: 0, total: 0 }, filesChanged: 0 };
+          return { stats: { additions: 0, deletions: 0, total: 0 }, filesChanged: 0, files: [] };
         }
       })
     );
@@ -100,6 +106,7 @@ export async function fetchCommits(
         date: c.commit.author.date,
         stats: detail.stats,
         filesChanged: detail.filesChanged,
+        files: detail.files,
       });
       loaded++;
       onProgress?.(loaded, total);

@@ -127,65 +127,151 @@ function AvatarCylinder({ url, position }: { url: string; position: [number, num
 }
 
 const STATS_SIZE = 0.09;
+const STATS_SMALL = 0.07;
 const STATS_BEVEL = { bevelEnabled: true, bevelThickness: 0.003, bevelSize: 0.002, bevelSegments: 2 };
+const SMALL_BEVEL = { bevelEnabled: true, bevelThickness: 0.002, bevelSize: 0.001, bevelSegments: 2 };
 const GREEN = 0x3fb950;
 const RED = 0xf85149;
 const STAT_GREY = 0x8b949e;
 
-function FileStatsface({ commit, height, textDepth }: { commit: CommitData; height: number; textDepth: number }) {
+// File extension to display label + color
+const EXT_COLORS: Record<string, number> = {
+  ts: 0x3178c6,
+  tsx: 0x3178c6,
+  js: 0xf7df1e,
+  jsx: 0xf7df1e,
+  vue: 0x42b883,
+  sql: 0xe38c00,
+  css: 0x264de4,
+  scss: 0xcc6699,
+  html: 0xe34f26,
+  json: 0xa8a8a8,
+  md: 0xa8a8a8,
+  yml: 0xcb171e,
+  yaml: 0xcb171e,
+  py: 0x3776ab,
+  rs: 0xdea584,
+  go: 0x00add8,
+  java: 0xb07219,
+  kt: 0xa97bff,
+  swift: 0xf05138,
+  rb: 0xcc342d,
+  sh: 0x89e051,
+};
+
+interface ExtBreakdown {
+  ext: string;
+  changes: number;
+  pct: number;
+  color: number;
+}
+
+function computeExtBreakdown(files: CommitData["files"]): ExtBreakdown[] {
+  const byExt = new Map<string, number>();
+  for (const f of files) {
+    const dot = f.filename.lastIndexOf(".");
+    const ext = dot >= 0 ? f.filename.slice(dot + 1).toLowerCase() : "other";
+    byExt.set(ext, (byExt.get(ext) ?? 0) + f.changes);
+  }
+  const total = Array.from(byExt.values()).reduce((a, b) => a + b, 0) || 1;
+  return Array.from(byExt.entries())
+    .map(([ext, changes]) => ({
+      ext,
+      changes,
+      pct: Math.round((changes / total) * 100),
+      color: EXT_COLORS[ext] ?? 0x8b949e,
+    }))
+    .sort((a, b) => b.changes - a.changes);
+}
+
+function FileStatsFace({ commit, height, textDepth }: { commit: CommitData; height: number; textDepth: number }) {
   const filesText = `${commit.filesChanged} files changed`;
   const addText = `+${commit.stats.additions}`;
   const delText = `-${commit.stats.deletions}`;
-  const linesText = "lines changed";
 
   const cw = STATS_SIZE * 0.62;
-  const gap = STATS_SIZE * 0.5;
+  const gap = STATS_SIZE * 1.2;
 
-  // Top line: "N files changed" centered
   const filesW = filesText.length * cw;
-
-  // Bottom line: "+N -N lines changed" laid out horizontally
   const addW = addText.length * cw;
   const delW = delText.length * cw;
-  const linesW = linesText.length * cw;
-  const bottomW = addW + gap * 0.5 + delW + gap + linesW;
+  const bottomW = addW + gap + delW;
 
-  const topY = STATS_SIZE * 0.4;
-  const bottomY = -STATS_SIZE * 0.9;
+  const topY = height / 2 - PADDING - 0.05;
+  const lineY = topY - STATS_SIZE * 1.4;
+
+  const breakdown = useMemo(() => computeExtBreakdown(commit.files), [commit.files]);
+  const maxFaceWidth = BLOCK_DEPTH - PADDING * 2;
+  const barHeight = 0.06;
+
+  // Bar starting Y below the +N -N line
+  const barY = lineY - STATS_SIZE * 2.0;
+  const cwSmall = STATS_SMALL * 0.62;
+  const labelLineHeight = STATS_SMALL * 1.5;
 
   return (
     <group>
-      {/* files changed — top line, centered */}
+      {/* files changed — top line */}
       <group position={[-filesW / 2, topY, 0]}>
         <Text3D font="/helvetiker_bold.typeface.json" size={STATS_SIZE} height={textDepth} {...STATS_BEVEL}>
           {filesText}
           <meshStandardMaterial color={0xffffff} metalness={0.1} roughness={0.5} emissive={0xffffff} emissiveIntensity={0.1} />
         </Text3D>
       </group>
-      {/* bottom line: +N  -N  lines changed */}
-      <group position={[-bottomW / 2, bottomY, 0]}>
-        {/* additions */}
+      {/* +N -N */}
+      <group position={[-bottomW / 2, lineY, 0]}>
         <group position={[0, 0, 0]}>
           <Text3D font="/helvetiker_bold.typeface.json" size={STATS_SIZE} height={textDepth} {...STATS_BEVEL}>
             {addText}
             <meshStandardMaterial color={GREEN} metalness={0.1} roughness={0.5} emissive={GREEN} emissiveIntensity={0.25} />
           </Text3D>
         </group>
-        {/* deletions */}
-        <group position={[addW + gap * 0.5, 0, 0]}>
+        <group position={[addW + gap, 0, 0]}>
           <Text3D font="/helvetiker_bold.typeface.json" size={STATS_SIZE} height={textDepth} {...STATS_BEVEL}>
             {delText}
             <meshStandardMaterial color={RED} metalness={0.1} roughness={0.5} emissive={RED} emissiveIntensity={0.25} />
           </Text3D>
         </group>
-        {/* "lines changed" */}
-        <group position={[addW + gap * 0.5 + delW + gap, 0, 0]}>
-          <Text3D font="/helvetiker_bold.typeface.json" size={STATS_SIZE} height={textDepth} {...STATS_BEVEL}>
-            {linesText}
-            <meshStandardMaterial color={STAT_GREY} metalness={0.1} roughness={0.5} emissive={STAT_GREY} emissiveIntensity={0.1} />
-          </Text3D>
-        </group>
       </group>
+
+      {/* Stacked percentage bar */}
+      {(() => {
+        let xOff = -maxFaceWidth / 2;
+        return breakdown.map((b, i) => {
+          const w = (b.pct / 100) * maxFaceWidth;
+          const x = xOff + w / 2;
+          xOff += w;
+          return (
+            <mesh key={i} position={[x, barY, textDepth / 2]}>
+              <boxGeometry args={[Math.max(w - 0.01, 0.01), barHeight, textDepth]} />
+              <meshStandardMaterial color={b.color} metalness={0.2} roughness={0.4} emissive={b.color} emissiveIntensity={0.15} />
+            </mesh>
+          );
+        });
+      })()}
+
+      {/* Extension labels below bar */}
+      {breakdown.slice(0, 4).map((b, i) => {
+        const label = `.${b.ext} ${b.pct}%`;
+        const labelW = label.length * cwSmall;
+        const y = barY - barHeight / 2 - 0.06 - i * labelLineHeight;
+        return (
+          <group key={b.ext}>
+            {/* Color dot */}
+            <mesh position={[-maxFaceWidth / 2 + 0.04, y + STATS_SMALL * 0.35, textDepth / 2]}>
+              <circleGeometry args={[0.03, 16]} />
+              <meshStandardMaterial color={b.color} emissive={b.color} emissiveIntensity={0.3} />
+            </mesh>
+            {/* Label text */}
+            <group position={[-maxFaceWidth / 2 + 0.1, y, 0]}>
+              <Text3D font="/helvetiker_bold.typeface.json" size={STATS_SMALL} height={textDepth} {...SMALL_BEVEL}>
+                {label}
+                <meshStandardMaterial color={STAT_GREY} metalness={0.1} roughness={0.5} emissive={STAT_GREY} emissiveIntensity={0.1} />
+              </Text3D>
+            </group>
+          </group>
+        );
+      })}
     </group>
   );
 }
@@ -337,7 +423,7 @@ export function CommitBlock({ commit, position, height }: CommitBlockProps) {
 
       {/* Right face — file stats */}
       <group position={[BLOCK_WIDTH / 2 + 0.01, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
-        <FileStatsface commit={commit} height={height} textDepth={textDepth} />
+        <FileStatsFace commit={commit} height={height} textDepth={textDepth} />
       </group>
 
       {/* Hover tooltip */}

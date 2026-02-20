@@ -1,4 +1,4 @@
-import type { CommitData, RepoInfo, TechLanguage } from "../types";
+import type { CommitData, FileChange, RepoInfo, TechLanguage } from "../types";
 
 export const MOCK_REPO: RepoInfo = { owner: "acme", repo: "webapp" };
 
@@ -91,6 +91,27 @@ function makeDate(i: number): string {
   return base.toISOString();
 }
 
+const EXT_POOL = [".ts", ".tsx", ".vue", ".sql", ".css", ".json", ".md", ".yml"];
+const DIR_POOL = ["src/components/", "src/lib/", "src/pages/", "src/hooks/", "db/migrations/", "src/styles/", "config/", "tests/"];
+
+function generateFiles(fileCount: number, totalAdd: number, totalDel: number, seed: number): FileChange[] {
+  const files: FileChange[] = [];
+  let remainAdd = totalAdd;
+  let remainDel = totalDel;
+  for (let j = 0; j < fileCount; j++) {
+    const ext = EXT_POOL[(seed + j * 3) % EXT_POOL.length];
+    const dir = DIR_POOL[(seed + j * 7) % DIR_POOL.length];
+    const name = `file${(seed * 13 + j) % 100}`;
+    const isLast = j === fileCount - 1;
+    const add = isLast ? remainAdd : Math.floor(remainAdd * ((j + 1) / fileCount) * (0.5 + ((seed + j) % 100) / 100));
+    const del = isLast ? remainDel : Math.floor(remainDel * ((j + 1) / fileCount) * (0.5 + ((seed + j * 5) % 100) / 100));
+    remainAdd -= add;
+    remainDel -= del;
+    files.push({ filename: `${dir}${name}${ext}`, additions: Math.max(0, add), deletions: Math.max(0, del), changes: Math.max(0, add) + Math.max(0, del) });
+  }
+  return files;
+}
+
 export const MOCK_COMMITS: CommitData[] = commits.slice(0, 10).map((c, i) => {
   const author = pick(authors, c.authorIdx);
   const hash = sha(i);
@@ -105,6 +126,7 @@ export const MOCK_COMMITS: CommitData[] = commits.slice(0, 10).map((c, i) => {
     date: makeDate(i),
     stats: { additions: c.add, deletions: c.del, total: c.add + c.del },
     filesChanged: c.files,
+    files: generateFiles(c.files, c.add, c.del, i),
     primaryLanguage: c.lang,
   };
 });
