@@ -1,7 +1,5 @@
 import { useRef, useEffect } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
-import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import type { BlockLayout } from "../../lib/tower";
 import { TowerGroup } from "./TowerGroup";
@@ -18,85 +16,73 @@ interface CommitSceneProps {
   layout: BlockLayout[];
   floorY: number;
   targetY: number;
+  angle: number;
   zoom: number;
 }
 
-function CameraController({ targetY, zoom }: { targetY: number; zoom: number }) {
-  const controlsRef = useRef<OrbitControlsImpl>(null);
+function CameraController({ targetY, angle, zoom }: { targetY: number; angle: number; zoom: number }) {
+  const { camera } = useThree();
   const targetRef = useRef(targetY);
+  const angleRef = useRef(angle);
   const zoomRef = useRef(zoom);
+  const currentAngle = useRef(angle);
 
-  useEffect(() => {
-    targetRef.current = targetY;
-  }, [targetY]);
-
-  useEffect(() => {
-    zoomRef.current = zoom;
-  }, [zoom]);
+  useEffect(() => { targetRef.current = targetY; }, [targetY]);
+  useEffect(() => { angleRef.current = angle; }, [angle]);
+  useEffect(() => { zoomRef.current = zoom; }, [zoom]);
 
   // Set initial position on mount
   useEffect(() => {
-    if (controlsRef.current) {
-      const d = INITIAL_DISTANCE / Math.SQRT2;
-      controlsRef.current.object.position.set(d, targetY, d);
-      controlsRef.current.target.set(0, targetY, 0);
-      controlsRef.current.update();
-    }
+    camera.position.set(
+      Math.cos(angle) * INITIAL_DISTANCE,
+      targetY,
+      Math.sin(angle) * INITIAL_DISTANCE
+    );
+    camera.lookAt(0, targetY, 0);
     // Only on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useFrame(() => {
-    if (!controlsRef.current) return;
-    const ctrl = controlsRef.current;
-    const cam = ctrl.object as THREE.PerspectiveCamera;
+    const cam = camera as THREE.PerspectiveCamera;
 
-    // Smooth Y position interpolation — move both camera and target together
-    const currentY = cam.position.y;
-    const desiredY = targetRef.current;
-    const diffY = desiredY - currentY;
+    // Smooth Y interpolation
+    const diffY = targetRef.current - cam.position.y;
     if (Math.abs(diffY) > 0.01) {
-      const deltaY = diffY * 0.08;
-      cam.position.y += deltaY;
-      ctrl.target.y += deltaY;
+      cam.position.y += diffY * 0.08;
     }
 
-    // Smooth zoom interpolation
-    const dir = new THREE.Vector3().subVectors(cam.position, ctrl.target);
-    const currentDist = dir.length();
+    // Smooth angle interpolation
+    const angleDiff = angleRef.current - currentAngle.current;
+    if (Math.abs(angleDiff) > 0.001) {
+      currentAngle.current += angleDiff * 0.08;
+    }
+
+    // Smooth zoom interpolation — compute desired distance
     const desiredDist = THREE.MathUtils.clamp(
       INITIAL_DISTANCE / zoomRef.current,
       MIN_DISTANCE,
       MAX_DISTANCE
     );
+    const currentDist = Math.sqrt(cam.position.x ** 2 + cam.position.z ** 2);
     const diffDist = desiredDist - currentDist;
-    if (Math.abs(diffDist) > 0.01) {
-      const newDist = currentDist + diffDist * 0.08;
-      dir.normalize().multiplyScalar(newDist);
-      cam.position.copy(ctrl.target).add(dir);
-    }
+    const dist = Math.abs(diffDist) > 0.01 ? currentDist + diffDist * 0.08 : currentDist;
 
-    ctrl.update();
+    // Apply angle + distance on XZ plane
+    cam.position.x = Math.cos(currentAngle.current) * dist;
+    cam.position.z = Math.sin(currentAngle.current) * dist;
+
+    cam.lookAt(0, cam.position.y, 0);
   });
 
-  return (
-    <OrbitControls
-      ref={controlsRef}
-      autoRotate={false}
-      enableZoom={false}
-      enablePan={false}
-      minDistance={MIN_DISTANCE}
-      maxDistance={MAX_DISTANCE}
-    />
-  );
+  return null;
 }
 
-export function CommitScene({ layout, floorY, targetY, zoom }: CommitSceneProps) {
-  const d = INITIAL_DISTANCE / Math.SQRT2;
+export function CommitScene({ layout, floorY, targetY, angle, zoom }: CommitSceneProps) {
   return (
     <Canvas
       shadows
-      camera={{ position: [d, targetY, d], fov: 50 }}
+      camera={{ position: [Math.cos(angle) * INITIAL_DISTANCE, targetY, Math.sin(angle) * INITIAL_DISTANCE], fov: 50 }}
       gl={{ antialias: true, toneMapping: 0 }}
       style={{ width: "100%", height: "100%" }}
     >
@@ -109,7 +95,7 @@ export function CommitScene({ layout, floorY, targetY, zoom }: CommitSceneProps)
       <Particles targetY={targetY} />
       <SceneEffects />
 
-      <CameraController targetY={targetY} zoom={zoom} />
+      <CameraController targetY={targetY} angle={angle} zoom={zoom} />
     </Canvas>
   );
 }

@@ -9,11 +9,13 @@ interface HUDProps {
   onBack: () => void;
   onScrollUp?: () => void;
   onScrollDown?: () => void;
+  onRotateLeft: () => void;
+  onRotateRight: () => void;
   onZoomIn: () => void;
   onZoomOut: () => void;
 }
 
-export function HUD({ repo, commits, onBack, onScrollUp, onScrollDown, onZoomIn, onZoomOut }: HUDProps) {
+export function HUD({ repo, commits, onBack, onScrollUp, onScrollDown, onRotateLeft, onRotateRight, onZoomIn, onZoomOut }: HUDProps) {
   const authors = useMemo(() => {
     const map = new Map<string, { login: string; count: number }>();
     for (const c of commits) {
@@ -39,23 +41,40 @@ export function HUD({ repo, commits, onBack, onScrollUp, onScrollDown, onZoomIn,
         </button>
       </div>
 
-      <div className={scrollControls}>
-        <button
-          className={scrollBtn}
-          onClick={onScrollUp}
-          disabled={!onScrollUp}
-          title="Newer commits"
-        >
-          ▲
-        </button>
-        <button
-          className={scrollBtn}
-          onClick={onScrollDown}
-          disabled={!onScrollDown}
-          title="Older commits"
-        >
-          ▼
-        </button>
+      <div className={dpad}>
+        <div className={dpadRow}>
+          <div className={dpadSpacer} />
+          <button
+            className={scrollBtn}
+            onClick={onScrollUp}
+            disabled={!onScrollUp}
+            title="Scroll up (↑)"
+          >
+            ▲
+          </button>
+          <div className={dpadSpacer} />
+        </div>
+        <div className={dpadRow}>
+          <button className={scrollBtn} onClick={onRotateLeft} title="Rotate left (←)">
+            ◀
+          </button>
+          <div className={dpadSpacer} />
+          <button className={scrollBtn} onClick={onRotateRight} title="Rotate right (→)">
+            ▶
+          </button>
+        </div>
+        <div className={dpadRow}>
+          <div className={dpadSpacer} />
+          <button
+            className={scrollBtn}
+            onClick={onScrollDown}
+            disabled={!onScrollDown}
+            title="Scroll down (↓)"
+          >
+            ▼
+          </button>
+          <div className={dpadSpacer} />
+        </div>
       </div>
 
       <div className={zoomControls}>
@@ -138,14 +157,25 @@ const backBtn = css({
   },
 });
 
-const scrollControls = css({
+const dpad = css({
   position: "absolute",
   right: "16px",
   top: "50%",
   transform: "translateY(-50%)",
   display: "flex",
   flexDirection: "column",
-  gap: "8px",
+  alignItems: "center",
+  gap: "4px",
+});
+
+const dpadRow = css({
+  display: "flex",
+  gap: "4px",
+});
+
+const dpadSpacer = css({
+  width: "40px",
+  height: "40px",
 });
 
 const scrollBtn = css({

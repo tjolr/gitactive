@@ -11,28 +11,39 @@ interface SceneViewProps {
   onBack: () => void;
 }
 
-const SCROLL_STEP = 5;
+const SCROLL_SPEED = 0.01; // world units per pixel of wheel delta
+const SCROLL_STEP_Y = 3; // world units per HUD button click
+const ROTATE_STEP = Math.PI / 6; // radians per button click / key press
 
 export function SceneView({ commits, repo, onBack }: SceneViewProps) {
   const layout = useMemo(() => computeTowerLayout(commits), [commits]);
   const floorY = useMemo(() => computeFloorY(layout), [layout]);
 
-  // focusIndex: index into layout[] (0 = oldest/bottom, length-1 = newest/top)
-  // Start focused on the top (newest commits)
-  const [focusIndex, setFocusIndex] = useState(layout.length - 1);
+  const minY = layout.length > 0 ? layout[0].y : 0;
+  const maxY = layout.length > 0 ? layout[layout.length - 1].y : 0;
 
-  const targetY = layout.length > 0 ? layout[focusIndex].y : 0;
+  // Continuous Y target — start at the top (newest commits)
+  const [targetY, setTargetY] = useState(maxY);
+  const [angle, setAngle] = useState(Math.PI / 4); // horizontal orbit angle (radians)
 
-  const canScrollDown = focusIndex > 0;
-  const canScrollUp = focusIndex < layout.length - 1;
+  const clampY = useCallback(
+    (y: number) => Math.max(minY, Math.min(maxY, y)),
+    [minY, maxY]
+  );
+
+  const canScrollDown = targetY > minY;
+  const canScrollUp = targetY < maxY;
 
   const scrollDown = useCallback(() => {
-    setFocusIndex((i) => Math.max(0, i - SCROLL_STEP));
-  }, []);
+    setTargetY((y) => clampY(y - SCROLL_STEP_Y));
+  }, [clampY]);
 
   const scrollUp = useCallback(() => {
-    setFocusIndex((i) => Math.min(layout.length - 1, i + SCROLL_STEP));
-  }, [layout.length]);
+    setTargetY((y) => clampY(y + SCROLL_STEP_Y));
+  }, [clampY]);
+
+  const rotateLeft = useCallback(() => setAngle((a) => a + ROTATE_STEP), []);
+  const rotateRight = useCallback(() => setAngle((a) => a - ROTATE_STEP), []);
 
   const [zoom, setZoom] = useState(1);
   const zoomIn = useCallback(() => setZoom((z) => Math.min(z * 1.3, 3)), []);
@@ -40,34 +51,58 @@ export function SceneView({ commits, repo, onBack }: SceneViewProps) {
 
   const wrapperRef = useRef<HTMLDivElement>(null);
 
+  // Wheel scroll for vertical movement
   useEffect(() => {
     const el = wrapperRef.current;
     if (!el) return;
 
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault();
-      // Scroll down (positive deltaY) → older commits (lower index)
-      // Scroll up (negative deltaY) → newer commits (higher index)
-      if (e.deltaY > 0) {
-        setFocusIndex((i) => Math.max(0, i - 1));
-      } else if (e.deltaY < 0) {
-        setFocusIndex((i) => Math.min(layout.length - 1, i + 1));
-      }
+      setTargetY((y) => Math.max(minY, Math.min(maxY, y - e.deltaY * SCROLL_SPEED)));
     };
 
     el.addEventListener("wheel", handleWheel, { passive: false });
     return () => el.removeEventListener("wheel", handleWheel);
-  }, [layout.length]);
+  }, [minY, maxY]);
+
+  // Arrow key handling
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      switch (e.key) {
+        case "ArrowUp":
+          e.preventDefault();
+          setTargetY((y) => Math.min(maxY, y + SCROLL_STEP_Y));
+          break;
+        case "ArrowDown":
+          e.preventDefault();
+          setTargetY((y) => Math.max(minY, y - SCROLL_STEP_Y));
+          break;
+        case "ArrowLeft":
+          e.preventDefault();
+          setAngle((a) => a + ROTATE_STEP);
+          break;
+        case "ArrowRight":
+          e.preventDefault();
+          setAngle((a) => a - ROTATE_STEP);
+          break;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [minY, maxY]);
 
   return (
     <div ref={wrapperRef} className={wrapper}>
-      <CommitScene layout={layout} floorY={floorY} targetY={targetY} zoom={zoom} />
+      <CommitScene layout={layout} floorY={floorY} targetY={targetY} angle={angle} zoom={zoom} />
       <HUD
         repo={repo}
         commits={commits}
         onBack={onBack}
         onScrollUp={canScrollUp ? scrollUp : undefined}
         onScrollDown={canScrollDown ? scrollDown : undefined}
+        onRotateLeft={rotateLeft}
+        onRotateRight={rotateRight}
         onZoomIn={zoomIn}
         onZoomOut={zoomOut}
       />

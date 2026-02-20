@@ -1,5 +1,6 @@
 import { useRef, useState, useMemo, useEffect } from "react";
 import { Html, RoundedBox, Text3D, Center } from "@react-three/drei";
+import { useControls } from "leva";
 import * as THREE from "three";
 import type { CommitData } from "../../types";
 import { authorColor, authorColorHex, timeAgo, timeAgoColor } from "../../lib/colors";
@@ -130,11 +131,13 @@ function FaceContent({
   color,
   lines,
   height,
+  textDepth,
 }: {
   commit: CommitData;
   color: number;
   lines: string[];
   height: number;
+  textDepth: number;
 }) {
   // Vertically center the content block (avatar + text lines)
   const totalTextHeight = lines.length * LINE_HEIGHT;
@@ -159,7 +162,7 @@ function FaceContent({
             <Text3D
               font="/helvetiker_bold.typeface.json"
               size={TEXT_SIZE}
-              height={TEXT_DEPTH}
+              height={textDepth}
               bevelEnabled
               bevelThickness={0.005}
               bevelSize={0.003}
@@ -187,6 +190,9 @@ export function CommitBlock({ commit, position, height }: CommitBlockProps) {
   const color = authorColorHex(commit.authorLogin);
   const cssColor = authorColor(commit.authorLogin);
   const { hex: timeColor, css: timeCssColor } = useMemo(() => timeAgoColor(commit.date), [commit.date]);
+  const { textDepth } = useControls("Text", {
+    textDepth: { value: TEXT_DEPTH, min: 0, max: 0.1, step: 0.005, label: "Extrusion Height" },
+  });
 
   // Max lines based on block height
   const maxLines = useMemo(() => {
@@ -200,7 +206,7 @@ export function CommitBlock({ commit, position, height }: CommitBlockProps) {
   );
 
   const relTime = useMemo(() => timeAgo(commit.date), [commit.date]);
-  const faceProps = { commit, color, lines, height };
+  const faceProps = { commit, color, lines, height, textDepth };
 
   return (
     <group position={position}>
@@ -239,7 +245,7 @@ export function CommitBlock({ commit, position, height }: CommitBlockProps) {
           <Text3D
             font="/helvetiker_bold.typeface.json"
             size={0.16}
-            height={0.02}
+            height={textDepth}
             bevelEnabled
             bevelThickness={0.004}
             bevelSize={0.002}
