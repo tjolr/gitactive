@@ -1,7 +1,8 @@
 import { useMemo } from "react";
 import { css } from "styled-system/css";
-import type { CommitData, RepoInfo } from "../types";
 import { authorColor } from "../lib/colors";
+import { accent, neutral } from "../lib/palette";
+import type { CommitData, RepoInfo } from "../types";
 
 interface HUDProps {
   repo: RepoInfo;
@@ -15,7 +16,17 @@ interface HUDProps {
   onZoomOut: () => void;
 }
 
-export function HUD({ repo, commits, onBack, onScrollUp, onScrollDown, onRotateLeft, onRotateRight, onZoomIn, onZoomOut }: HUDProps) {
+export function HUD({
+  repo,
+  commits,
+  onBack,
+  onScrollUp,
+  onScrollDown,
+  onRotateLeft,
+  onRotateRight,
+  onZoomIn,
+  onZoomOut,
+}: HUDProps) {
   const authors = useMemo(() => {
     const map = new Map<string, { login: string; count: number }>();
     for (const c of commits) {
@@ -121,7 +132,7 @@ const repoName = css({
   padding: "10px 16px",
   fontSize: "14px",
   fontWeight: "600",
-  color: "#e0e0e0",
+  color: neutral[100],
   display: "flex",
   alignItems: "center",
   gap: "12px",
@@ -129,7 +140,7 @@ const repoName = css({
 
 const commitCount = css({
   fontSize: "11px",
-  color: "#00ff88",
+  color: accent.neonGreen,
   background: "rgba(0, 255, 136, 0.1)",
   padding: "2px 8px",
   borderRadius: "4px",
@@ -142,13 +153,13 @@ const backBtn = css({
   border: "1px solid #2a2a3a",
   borderRadius: "8px",
   padding: "10px 16px",
-  color: "#e0e0e0",
+  color: neutral[100],
   fontSize: "13px",
   fontFamily: "inherit",
   cursor: "pointer",
   transition: "border-color 0.2s",
   _hover: {
-    borderColor: "#00ff88",
+    borderColor: accent.neonGreen,
   },
 });
 
@@ -161,7 +172,7 @@ const edgeTop = css({
 
 const edgeBottom = css({
   position: "absolute",
-  bottom: "60px",
+  bottom: "16px",
   left: "50%",
   transform: "translateX(-50%)",
 });
@@ -188,7 +199,7 @@ const scrollBtn = css({
   backdropFilter: "blur(10px)",
   border: "1px solid #2a2a3a",
   borderRadius: "8px",
-  color: "#e0e0e0",
+  color: neutral[100],
   fontSize: "16px",
   fontFamily: "inherit",
   cursor: "pointer",
@@ -197,14 +208,14 @@ const scrollBtn = css({
   justifyContent: "center",
   transition: "all 0.2s",
   _hover: {
-    borderColor: "#00ff88",
-    color: "#00ff88",
+    borderColor: accent.neonGreen,
+    color: accent.neonGreen,
   },
   _disabled: {
     opacity: 0.3,
     cursor: "default",
-    borderColor: "#2a2a3a",
-    color: "#e0e0e0",
+    borderColor: neutral[700],
+    color: neutral[100],
   },
 });
 
@@ -221,7 +232,7 @@ const legend = css({
   display: "flex",
   flexWrap: "wrap",
   gap: "8px",
-  justifyContent: "center",
+  justifyContent: "flex-start",
 });
 
 const legendItem = css({
@@ -244,9 +255,9 @@ const legendDot = css({
 });
 
 const legendText = css({
-  color: "#e0e0e0",
+  color: neutral[100],
 });
 
 const legendCount = css({
-  color: "#888899",
+  color: neutral[500],
 });

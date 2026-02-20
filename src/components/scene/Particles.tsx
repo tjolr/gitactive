@@ -1,6 +1,7 @@
 import { useRef, useMemo, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
+import { accent } from "../../lib/palette";
 
 const PARTICLE_COUNT = 80;
 const SPREAD_XZ = 20;
@@ -68,7 +69,7 @@ export function Particles({ targetY }: ParticlesProps) {
       </bufferGeometry>
       <pointsMaterial
         size={0.06}
-        color="#00ff88"
+        color={accent.neonGreen}
         transparent
         opacity={0.7}
         sizeAttenuation

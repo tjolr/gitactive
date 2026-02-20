@@ -8,6 +8,7 @@ import {
   timeAgo,
   timeAgoColor,
 } from "../../lib/colors";
+import { extColors, neutral, scene, stat, white } from "../../lib/palette";
 import type { CommitData } from "../../types";
 import {
   EXT_TO_LOGO,
@@ -80,7 +81,7 @@ function wrapText(title: string, maxLines: number): string[] {
   return lines;
 }
 
-const AVATAR_RIM_COLOR = 0x1a1a2e;
+const AVATAR_RIM_COLOR = scene.rimHex;
 
 function AvatarCylinder({
   url,
@@ -111,7 +112,7 @@ function AvatarCylinder({
         tex.colorSpace = THREE.SRGBColorSpace;
         tex.needsUpdate = true;
         matRef.current.map = tex;
-        matRef.current.color.set(0xffffff);
+        matRef.current.color.set(white.hex);
         matRef.current.needsUpdate = true;
       })
       .catch(() => {
@@ -170,34 +171,9 @@ const SMALL_BEVEL = {
   bevelSize: 0.001,
   bevelSegments: 2,
 };
-const GREEN = 0x3fb950;
-const RED = 0xf85149;
-const STAT_GREY = 0x8b949e;
-
-// File extension to display label + color
-const EXT_COLORS: Record<string, number> = {
-  ts: 0x3178c6,
-  tsx: 0x3178c6,
-  js: 0xf7df1e,
-  jsx: 0xf7df1e,
-  vue: 0x42b883,
-  sql: 0xe38c00,
-  css: 0x264de4,
-  scss: 0xcc6699,
-  html: 0xe34f26,
-  json: 0xa8a8a8,
-  md: 0xa8a8a8,
-  yml: 0xcb171e,
-  yaml: 0xcb171e,
-  py: 0x3776ab,
-  rs: 0xdea584,
-  go: 0x00add8,
-  java: 0xb07219,
-  kt: 0xa97bff,
-  swift: 0xf05138,
-  rb: 0xcc342d,
-  sh: 0x89e051,
-};
+const GREEN = stat.added;
+const RED = stat.removed;
+const STAT_GREY = stat.grey;
 
 interface ExtBreakdown {
   ext: string;
@@ -219,7 +195,7 @@ function computeExtBreakdown(files: CommitData["files"]): ExtBreakdown[] {
       ext,
       changes,
       pct: Math.round((changes / total) * 100),
-      color: EXT_COLORS[ext] ?? 0x8b949e,
+      color: extColors[ext] ?? stat.grey,
     }))
     .sort((a, b) => b.changes - a.changes);
 }
@@ -271,10 +247,10 @@ function FileStatsFace({
         >
           {filesText}
           <meshStandardMaterial
-            color={0xffffff}
+            color={white.hex}
             metalness={0.1}
             roughness={0.5}
-            emissive={0xffffff}
+            emissive={white.hex}
             emissiveIntensity={0.1}
           />
         </Text3D>
@@ -360,7 +336,7 @@ function FileStatsFace({
       {(() => {
         const items = breakdown.slice(0, 4);
         const maxPct = Math.max(...items.map((b) => b.pct), 1);
-        const y = barY - barHeight / 2 - 0.18;
+        const y = barY - barHeight / 2 - 0.3;
         const baseIconSize = 0.28;
         const dotSize = 0.1;
         const MIN_SCALE = 0.5;
@@ -443,7 +419,6 @@ function FileStatsFace({
 
 function FaceContent({
   commit,
-  color,
   lines,
   height,
   textDepth,
@@ -451,7 +426,6 @@ function FaceContent({
   timeColor,
 }: {
   commit: CommitData;
-  color: number;
   lines: string[];
   height: number;
   textDepth: number;
@@ -482,10 +456,10 @@ function FaceContent({
             >
               {line}
               <meshStandardMaterial
-                color={0xffffff}
+                color={white.hex}
                 metalness={0.1}
                 roughness={0.5}
-                emissive={0xffffff}
+                emissive={white.hex}
                 emissiveIntensity={0.1}
               />
             </Text3D>
@@ -654,7 +628,7 @@ export function CommitBlock({ commit, position, height }: CommitBlockProps) {
             </div>
             <div
               style={{
-                color: "#e0e0e0",
+                color: neutral[100],
                 fontSize: "11px",
                 marginBottom: "4px",
                 lineHeight: 1.3,
@@ -673,7 +647,7 @@ export function CommitBlock({ commit, position, height }: CommitBlockProps) {
             >
               {timeAgo(commit.date)}
             </div>
-            <div style={{ color: "#888899", fontSize: "10px" }}>
+            <div style={{ color: neutral[500], fontSize: "10px" }}>
               {commit.shortSha} · {commit.filesChanged} file
               {commit.filesChanged !== 1 ? "s" : ""} · +{commit.stats.additions}{" "}
               -{commit.stats.deletions}

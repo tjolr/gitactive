@@ -2,6 +2,7 @@ import { useState } from "react";
 import { css } from "styled-system/css";
 import { parseRepoUrl, fetchCommits } from "../lib/github";
 import { MOCK_COMMITS, MOCK_REPO } from "../lib/mock-data";
+import { accent, neutral, purple, red, scene } from "../lib/palette";
 import type { CommitData, RepoInfo } from "../types";
 
 const isLocalhost =
@@ -150,7 +151,7 @@ const container = css({
 });
 
 const card = css({
-  background: "#12121a",
+  background: neutral[900],
   border: "1px solid #2a2a3a",
   borderRadius: "16px",
   padding: "48px",
@@ -165,17 +166,17 @@ const title = css({
   fontWeight: "800",
   margin: "0 0 4px 0",
   letterSpacing: "-1px",
-  color: "#e0e0e0",
+  color: neutral[100],
 });
 
 const titleAccent = css({
-  color: "#00ff88",
+  color: accent.neonGreen,
   textShadow: "0 0 20px rgba(0, 255, 136, 0.4)",
 });
 
 const subtitle = css({
   fontSize: "14px",
-  color: "#888899",
+  color: neutral[500],
   margin: "0 0 32px 0",
 });
 
@@ -193,23 +194,23 @@ const inputGroup = css({
 
 const label = css({
   fontSize: "12px",
-  color: "#888899",
+  color: neutral[500],
   textTransform: "uppercase",
   letterSpacing: "1px",
 });
 
 const input = css({
-  background: "#0a0a0f",
+  background: scene.background,
   border: "1px solid #2a2a3a",
   borderRadius: "8px",
   padding: "12px 16px",
-  color: "#e0e0e0",
+  color: neutral[100],
   fontSize: "14px",
   fontFamily: "inherit",
   outline: "none",
   transition: "border-color 0.2s",
   _focus: {
-    borderColor: "#00ff88",
+    borderColor: accent.neonGreen,
     boxShadow: "0 0 10px rgba(0, 255, 136, 0.1)",
   },
   _disabled: {
@@ -220,14 +221,14 @@ const input = css({
 const toggleBtn = css({
   background: "none",
   border: "none",
-  color: "#888899",
+  color: neutral[500],
   fontSize: "13px",
   cursor: "pointer",
   textAlign: "left",
   padding: "0",
   fontFamily: "inherit",
   _hover: {
-    color: "#e0e0e0",
+    color: neutral[100],
   },
 });
 
@@ -236,7 +237,7 @@ const errorBox = css({
   border: "1px solid rgba(255, 50, 50, 0.3)",
   borderRadius: "8px",
   padding: "12px",
-  color: "#ff6b6b",
+  color: red[300],
   fontSize: "13px",
 });
 
@@ -245,7 +246,7 @@ const submitBtn = css({
   border: "none",
   borderRadius: "8px",
   padding: "14px",
-  color: "#0a0a0f",
+  color: scene.background,
   fontSize: "16px",
   fontWeight: "700",
   fontFamily: "inherit",
@@ -266,7 +267,7 @@ const submitBtn = css({
 
 const progressBar = css({
   height: "4px",
-  background: "#1a1a26",
+  background: neutral[800],
   borderRadius: "2px",
   overflow: "hidden",
 });
@@ -284,15 +285,15 @@ const demoBtn = css({
   border: "1px dashed #2a2a3a",
   borderRadius: "8px",
   padding: "12px",
-  color: "#888899",
+  color: neutral[500],
   fontSize: "13px",
   fontFamily: "inherit",
   cursor: "pointer",
   transition: "all 0.2s",
   width: "100%",
   _hover: {
-    borderColor: "#7c3aed",
-    color: "#7c3aed",
+    borderColor: purple[400],
+    color: purple[400],
   },
   _disabled: {
     opacity: 0.5,

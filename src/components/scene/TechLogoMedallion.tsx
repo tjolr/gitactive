@@ -1,11 +1,12 @@
 import { useRef, useEffect } from "react";
 import * as THREE from "three";
+import { scene, white } from "../../lib/palette";
 import type { TechLanguage } from "../../types";
 
 const RADIUS = 0.45;
 const THICKNESS = 0.18;
 const OUTER_RADIUS = RADIUS + 0.03;
-const RIM_COLOR = 0x1a1a2e;
+const RIM_COLOR = scene.rimHex;
 
 const LOGO_URLS: Record<TechLanguage, string> = {
   vue: "/logos/vue.svg",
@@ -67,7 +68,7 @@ export function TechLogoMedallion({ language }: { language: TechLanguage }) {
     loadLogoTexture(language).then((tex) => {
       if (cancelled || !matRef.current) return;
       matRef.current.map = tex;
-      matRef.current.color.set(0xffffff);
+      matRef.current.color.set(white.hex);
       matRef.current.needsUpdate = true;
     }).catch(() => { /* silently fail — keeps fallback color */ });
 
@@ -108,7 +109,7 @@ export function SmallLogoIcon({ language, position, scale = 1 }: { language: Tec
     loadLogoTexture(language).then((tex) => {
       if (cancelled || !matRef.current) return;
       matRef.current.map = tex;
-      matRef.current.color.set(0xffffff);
+      matRef.current.color.set(white.hex);
       matRef.current.needsUpdate = true;
     }).catch(() => {});
 

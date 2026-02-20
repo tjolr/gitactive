@@ -1,5 +1,6 @@
 import { Html } from "@react-three/drei";
 import { BLOCK_WIDTH } from "./CommitBlock";
+import { neutral, scene } from "../../lib/palette";
 import type { BlockLayout } from "../../lib/tower";
 import { CommitBlock } from "./CommitBlock";
 
@@ -29,8 +30,8 @@ export function TowerGroup({ layout }: TowerGroupProps) {
                   fontFamily: "'SF Mono', monospace",
                   fontSize: "15px",
                   fontWeight: 600,
-                  color: "#8888aa",
-                  background: "rgba(10, 10, 15, 0.7)",
+                  color: neutral[400],
+                  background: `${scene.background}b3`,
                   padding: "3px 8px",
                   borderRadius: "4px",
                   borderLeft: "2px solid #555577",

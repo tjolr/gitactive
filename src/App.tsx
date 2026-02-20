@@ -4,6 +4,7 @@ import { LandingPage } from "./components/LandingPage";
 import { SceneView } from "./components/SceneView";
 import { parseRepoUrl, fetchCommits } from "./lib/github";
 import { resetAuthorColors } from "./lib/colors";
+import { neutral, scene } from "./lib/palette";
 
 const LS_REPO_URL = "gitactive:repoUrl";
 const LS_TOKEN = "gitactive:token";
@@ -50,8 +51,8 @@ function App() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "#0a0a0f",
-        color: "#888899",
+        background: scene.background,
+        color: neutral[500],
         fontFamily: "'SF Mono', monospace",
         fontSize: "14px",
       }}>

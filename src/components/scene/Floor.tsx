@@ -1,4 +1,5 @@
 import { MeshReflectorMaterial } from "@react-three/drei";
+import { scene } from "../../lib/palette";
 
 interface FloorProps {
   yPosition: number;
@@ -17,7 +18,7 @@ export function Floor({ yPosition }: FloorProps) {
         depthScale={1.2}
         minDepthThreshold={0.4}
         maxDepthThreshold={1.4}
-        color="#0a0a12"
+        color={scene.floor}
         metalness={0.5}
         mirror={0.5}
       />

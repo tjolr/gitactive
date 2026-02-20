@@ -1,3 +1,5 @@
+import { authorPalette, time } from "./palette";
+
 /**
  * Map commit age to a green→blue color.
  * - 0 mins old  → bright green (hue 140)
@@ -42,9 +44,9 @@ export function ageColor(dateStr: string): { hex: number; css: string } {
 /** Color for the relative-time text: green < 1h, orange 1–2h, brown > 2h */
 export function timeAgoColor(dateStr: string): { hex: number; css: string } {
   const mins = Math.max(0, (Date.now() - new Date(dateStr).getTime()) / 60_000);
-  if (mins < 60) return { hex: 0x44ff44, css: "#44ff44" };       // green
-  if (mins < 120) return { hex: 0xffa500, css: "#ffa500" };      // orange
-  return { hex: 0x8b5e3c, css: "#8b5e3c" };                      // brown
+  if (mins < 60) return time.fresh;
+  if (mins < 120) return time.recent;
+  return time.stale;
 }
 
 /** Compact relative time: 14m ago, 2h ago, 1d ago, 3mo ago, 1y ago */
@@ -64,26 +66,6 @@ export function timeAgo(dateStr: string): string {
   return `${years}y ago`;
 }
 
-// GitHub dark-mode label palette — curated colors that pop on dark backgrounds
-const GITHUB_LABEL_COLORS = [
-  { hex: 0x1d76db, css: "#1d76db" }, // blue
-  { hex: 0x0e8a16, css: "#0e8a16" }, // green
-  { hex: 0xd93f0b, css: "#d93f0b" }, // orange
-  { hex: 0x5319e7, css: "#5319e7" }, // purple
-  { hex: 0xfbca04, css: "#fbca04" }, // yellow
-  { hex: 0x006b75, css: "#006b75" }, // teal
-  { hex: 0xb60205, css: "#b60205" }, // red
-  { hex: 0x0052cc, css: "#0052cc" }, // dark blue
-  { hex: 0xe99695, css: "#e99695" }, // pink
-  { hex: 0xc5def5, css: "#c5def5" }, // light blue
-  { hex: 0xd4c5f9, css: "#d4c5f9" }, // lavender
-  { hex: 0xc2e0c6, css: "#c2e0c6" }, // light green
-  { hex: 0xf9d0c4, css: "#f9d0c4" }, // peach
-  { hex: 0xbfdadc, css: "#bfdadc" }, // light teal
-  { hex: 0xfef2c0, css: "#fef2c0" }, // light yellow
-  { hex: 0xbfd4f2, css: "#bfd4f2" }, // periwinkle
-] as const;
-
 // Assign colors by insertion order — cycles through the palette
 const authorIndex = new Map<string, number>();
 
@@ -101,12 +83,12 @@ function getAuthorIndex(username: string): number {
 
 export function authorColor(username: string): string {
   const idx = getAuthorIndex(username);
-  return GITHUB_LABEL_COLORS[idx % GITHUB_LABEL_COLORS.length].css;
+  return authorPalette[idx % authorPalette.length].css;
 }
 
 export function authorColorHex(username: string): number {
   const idx = getAuthorIndex(username);
-  return GITHUB_LABEL_COLORS[idx % GITHUB_LABEL_COLORS.length].hex;
+  return authorPalette[idx % authorPalette.length].hex;
 }
 
 /** Darken a hex color by a factor (0 = black, 1 = original) */

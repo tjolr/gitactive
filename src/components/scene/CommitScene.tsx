@@ -1,6 +1,7 @@
 import { useRef, useEffect } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
+import { scene } from "../../lib/palette";
 import type { BlockLayout } from "../../lib/tower";
 import { TowerGroup } from "./TowerGroup";
 import { SceneLighting } from "./SceneLighting";
@@ -86,8 +87,8 @@ export function CommitScene({ layout, floorY, targetY, angle, zoom }: CommitScen
       gl={{ antialias: true, toneMapping: 0 }}
       style={{ width: "100%", height: "100%" }}
     >
-      <color attach="background" args={["#0a0a0f"]} />
-      <fog attach="fog" args={["#0a0a0f", 8, 35]} />
+      <color attach="background" args={[scene.background]} />
+      <fog attach="fog" args={[scene.fog, 8, 35]} />
 
       <SceneLighting />
       <TowerGroup layout={layout} />
