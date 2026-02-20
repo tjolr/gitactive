@@ -22,20 +22,31 @@ interface CommitBlockProps {
   height: number;
 }
 
-export const BLOCK_WIDTH = 3;
-const BLOCK_DEPTH = 3;
-const AVATAR_RADIUS = 0.35;
-const AVATAR_THICKNESS = 0.18;
-const PADDING = 0.25;
-export const MIN_BLOCK_HEIGHT = AVATAR_RADIUS * 2 + PADDING * 2;
+// Regular hexagon: all 6 sides = HEX_SIDE
+const HEX_SIDE = 3;
+const FRONT_FACE_WIDTH = HEX_SIDE; // 2
+const SIDE_PROTRUDE = HEX_SIDE / 2; // 1
+const BLOCK_DEPTH = HEX_SIDE * Math.sqrt(3); // ≈3.464
+export const BLOCK_WIDTH = 2 * HEX_SIDE; // 4
+
+const HEX_HALF_W = FRONT_FACE_WIDTH / 2; // 1
+const HEX_HALF_D = BLOCK_DEPTH / 2; // ≈1.732
+const ANGLED_FACE_WIDTH = HEX_SIDE; // all sides equal
+const ANGLED_NX = HEX_HALF_D / ANGLED_FACE_WIDTH;
+const ANGLED_NZ = SIDE_PROTRUDE / ANGLED_FACE_WIDTH;
+const ANGLED_APOTHEM = HEX_HALF_W * ANGLED_NX + HEX_HALF_D * ANGLED_NZ;
+
+const AVATAR_RADIUS = 0.25;
+const AVATAR_THICKNESS = 0.14;
+const PADDING = 0.15;
+export const MIN_BLOCK_HEIGHT = (AVATAR_RADIUS * 2 + PADDING * 2) * 1.5;
 const TEXT_SIZE = 0.09;
 const LINE_HEIGHT = TEXT_SIZE * 1.35;
-const SIDE_OFFSET = BLOCK_DEPTH / 2 + 0.01;
 
-// Available width for text (block half-width minus avatar and padding)
-const AVATAR_X = -BLOCK_WIDTH / 2 + PADDING + AVATAR_RADIUS;
+// Available width for text (front face half-width minus avatar and padding)
+const AVATAR_X = -FRONT_FACE_WIDTH / 2 + PADDING + AVATAR_RADIUS;
 const TEXT_LEFT = AVATAR_X + AVATAR_RADIUS + PADDING;
-const TEXT_AREA_WIDTH = BLOCK_WIDTH / 2 - TEXT_LEFT - PADDING;
+const TEXT_AREA_WIDTH = FRONT_FACE_WIDTH / 2 - TEXT_LEFT - PADDING;
 
 // Approximate chars per line for helvetiker bold at TEXT_SIZE
 const CHAR_WIDTH = TEXT_SIZE * 0.62;
@@ -204,10 +215,12 @@ function FileStatsFace({
   commit,
   height,
   textDepth,
+  faceWidth = BLOCK_DEPTH,
 }: {
   commit: CommitData;
   height: number;
   textDepth: number;
+  faceWidth?: number;
 }) {
   const filesText = `${commit.filesChanged} files changed`;
   const addText = `+${commit.stats.additions}`;
@@ -228,7 +241,7 @@ function FileStatsFace({
     () => computeExtBreakdown(commit.files),
     [commit.files],
   );
-  const maxFaceWidth = BLOCK_DEPTH - PADDING * 2;
+  const maxFaceWidth = faceWidth - PADDING * 2;
   const barHeight = 0.06;
 
   // Bar starting Y below the +N -N line
@@ -468,7 +481,7 @@ function FaceContent({
       </group>
       {/* Time since — top right corner */}
       <group
-        position={[BLOCK_WIDTH / 2 - PADDING, height / 2 - PADDING - 0.05, 0]}
+        position={[FRONT_FACE_WIDTH / 2 - PADDING, height / 2 - PADDING - 0.05, 0]}
       >
         <Center left top>
           <Text3D
@@ -528,9 +541,35 @@ export function CommitBlock({ commit, position, height }: CommitBlockProps) {
     timeColor,
   };
 
+  // Hex prism geometry (XZ cross-section, extruded along Y)
+  const hexGeo = useMemo(() => {
+    const shape = new THREE.Shape();
+    shape.moveTo(-HEX_HALF_W, -HEX_HALF_D);
+    shape.lineTo(HEX_HALF_W, -HEX_HALF_D);
+    shape.lineTo(HEX_HALF_W + SIDE_PROTRUDE, 0);
+    shape.lineTo(HEX_HALF_W, HEX_HALF_D);
+    shape.lineTo(-HEX_HALF_W, HEX_HALF_D);
+    shape.lineTo(-HEX_HALF_W - SIDE_PROTRUDE, 0);
+    shape.closePath();
+
+    const geo = new THREE.ExtrudeGeometry(shape, {
+      depth: height,
+      bevelEnabled: false,
+    });
+    // Extrude goes along +Z; rotate so it goes along +Y, centered
+    geo.translate(0, 0, -height / 2);
+    geo.rotateX(Math.PI / 2);
+    return geo;
+  }, [height]);
+
+  // Angled face positions
+  const angledD = ANGLED_APOTHEM + 0.01;
+  const rfAngle = Math.atan2(ANGLED_NX, ANGLED_NZ);
+  const rbAngle = Math.atan2(ANGLED_NX, -ANGLED_NZ);
+
   return (
     <group position={position}>
-      {/* Main block — darker tinted faces */}
+      {/* Main hex prism */}
       <mesh
         ref={meshRef}
         onPointerOver={(e) => {
@@ -541,7 +580,7 @@ export function CommitBlock({ commit, position, height }: CommitBlockProps) {
         castShadow
         receiveShadow
       >
-        <boxGeometry args={[BLOCK_WIDTH, height, BLOCK_DEPTH]} />
+        <primitive object={hexGeo} attach="geometry" />
         <meshStandardMaterial
           color={darkenHex(color, 0.55)}
           metalness={0.3}
@@ -553,44 +592,53 @@ export function CommitBlock({ commit, position, height }: CommitBlockProps) {
 
       {/* Bright border edges */}
       <lineSegments>
-        <edgesGeometry
-          args={[new THREE.BoxGeometry(BLOCK_WIDTH, height, BLOCK_DEPTH)]}
-        />
+        <edgesGeometry args={[hexGeo]} />
         <lineBasicMaterial color={color} toneMapped={false} />
       </lineSegments>
 
-      {/* Front face */}
-      <group position={[0, 0, SIDE_OFFSET]}>
+      {/* Front face (+Z) */}
+      <group position={[0, 0, HEX_HALF_D + 0.01]}>
         <FaceContent {...faceProps} />
       </group>
 
-      {/* Back face */}
-      <group position={[0, 0, -SIDE_OFFSET]} rotation={[0, Math.PI, 0]}>
+      {/* Back face (-Z) */}
+      <group position={[0, 0, -(HEX_HALF_D + 0.01)]} rotation={[0, Math.PI, 0]}>
         <FaceContent {...faceProps} />
       </group>
 
-      {/* Left face — tech logo */}
+      {/* Right-front face — file stats */}
+      <group
+        position={[ANGLED_NX * angledD, 0, ANGLED_NZ * angledD]}
+        rotation={[0, rfAngle, 0]}
+      >
+        <FileStatsFace
+          commit={commit}
+          height={height}
+          textDepth={textDepth}
+          faceWidth={ANGLED_FACE_WIDTH}
+        />
+      </group>
+
+      {/* Right-back face — empty */}
+      {/* (no content) */}
+
+      {/* Left-front face — tech logo */}
       {commit.primaryLanguage && (
         <group
-          position={[-BLOCK_WIDTH / 2 - 0.01, 0, 0]}
-          rotation={[0, -Math.PI / 2, 0]}
+          position={[-ANGLED_NX * angledD, 0, ANGLED_NZ * angledD]}
+          rotation={[0, -rfAngle, 0]}
         >
           <TechLogoMedallion language={commit.primaryLanguage} />
         </group>
       )}
 
-      {/* Right face — file stats */}
-      <group
-        position={[BLOCK_WIDTH / 2 + 0.01, 0, 0]}
-        rotation={[0, Math.PI / 2, 0]}
-      >
-        <FileStatsFace commit={commit} height={height} textDepth={textDepth} />
-      </group>
+      {/* Left-back face — empty */}
+      {/* (no content) */}
 
       {/* Hover tooltip */}
       {hovered && (
         <Html
-          position={[BLOCK_WIDTH / 2 + 0.5, 0, 0]}
+          position={[HEX_HALF_W + SIDE_PROTRUDE + 0.5, 0, 0]}
           distanceFactor={8}
           style={{ pointerEvents: "none" }}
         >

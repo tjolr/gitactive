@@ -9,7 +9,7 @@
 
 // ── Neutral / background ────────────────────────────────────────────
 export const neutral = {
-  50:  "#f5f5f7",
+  50: "#f5f5f7",
   100: "#e0e0e0",
   200: "#c0c0c0",
   300: "#a8a8a8",
@@ -23,7 +23,7 @@ export const neutral = {
 } as const;
 
 export const neutralHex = {
-  50:  0xf5f5f7,
+  50: 0xf5f5f7,
   100: 0xe0e0e0,
   200: 0xc0c0c0,
   300: 0xa8a8a8,
@@ -68,7 +68,7 @@ export const green = {
   300: "#56d364",
   400: "#3fb950",
   500: "#0e8a16",
-  600: "#00ff88",  // neon accent
+  600: "#00ff88", // neon accent
   700: "#066d0e",
   800: "#044d0a",
   900: "#023306",
@@ -240,61 +240,61 @@ export const pinkHex = {
 export const white = { hex: 0xffffff, css: "#ffffff" } as const;
 
 export const scene = {
-  background:    neutral[950],   // "#0a0a0f"
+  background: neutral[950], // "#0a0a0f"
   backgroundHex: neutralHex[950],
-  floor:         "#0a0a12",
-  floorHex:      0x0a0a12,
-  rim:           neutral[800],   // "#1a1a26"
-  rimHex:        0x1a1a2e,       // slightly bluer variant used for medallion rims
-  fog:           neutral[950],
+  floor: "#0a0a12",
+  floorHex: 0x0a0a12,
+  rim: neutral[800], // "#1a1a26"
+  rimHex: 0x1a1a2e, // slightly bluer variant used for medallion rims
+  fog: neutral[950],
 } as const;
 
 export const accent = {
-  neonGreen:    green[600],     // "#00ff88"
+  neonGreen: green[600], // "#00ff88"
   neonGreenHex: greenHex[600],
-  purple:       purple[400],    // "#7c3aed"
-  purpleHex:    purpleHex[400],
-  warmSpot:     orange[400],    // "#ff6b35"
+  purple: purple[400], // "#7c3aed"
+  purpleHex: purpleHex[400],
+  warmSpot: orange[400], // "#ff6b35"
 } as const;
 
 export const stat = {
-  added:      greenHex[400],    // 0x3fb950
-  addedCss:   green[400],
-  removed:    redHex[200],      // 0xf85149
+  added: greenHex[400], // 0x3fb950
+  addedCss: green[400],
+  removed: redHex[200], // 0xf85149
   removedCss: red[200],
-  grey:       0x8b949e,
-  greyCss:    "#8b949e",
+  grey: 0x8b949e,
+  greyCss: "#8b949e",
 } as const;
 
 export const time = {
-  fresh:     { hex: 0x44ff44, css: "#44ff44" },  // < 1h
-  recent:    { hex: 0xffa500, css: "#ffa500" },   // 1-2h
-  stale:     { hex: 0x8b5e3c, css: "#8b5e3c" },   // > 2h
+  fresh: { hex: 0x44ff44, css: "#44ff44" }, // < 1h
+  recent: { hex: 0xffa500, css: "#ffa500" }, // 1-2h
+  stale: { hex: 0x8b5e3c, css: "#8b5e3c" }, // > 2h
 } as const;
 
 // ── File-extension brand colors ─────────────────────────────────────
 export const extColors: Record<string, number> = {
-  ts:     blueHex[500],     // 0x3178c6 – manually set below
-  tsx:    0x3178c6,
-  js:     yellowHex[400],   // 0xf7df1e
-  jsx:    yellowHex[400],
-  vue:    0x42b883,
-  sql:    orangeHex[500],   // 0xe38c00
-  css:    0x264de4,
-  scss:   pinkHex[300],     // 0xcc6699
-  html:   0xe34f26,
-  json:   neutralHex[300],  // 0xa8a8a8
-  md:     neutralHex[300],
-  yml:    0xcb171e,
-  yaml:   0xcb171e,
-  py:     0x3776ab,
-  rs:     0xdea584,
-  go:     tealHex[300],     // 0x00add8
-  java:   orangeHex[700],   // 0xb07219
-  kt:     purpleHex[300],   // 0xa97bff
-  swift:  0xf05138,
-  rb:     redHex[500],      // 0xcc342d
-  sh:     greenHex[200],    // 0x89e051
+  ts: blueHex[500], // 0x3178c6 – manually set below
+  tsx: 0x3178c6,
+  js: yellowHex[400], // 0xf7df1e
+  jsx: yellowHex[400],
+  vue: 0x42b883,
+  sql: orangeHex[500], // 0xe38c00
+  css: 0x264de4,
+  scss: pinkHex[300], // 0xcc6699
+  html: 0xe34f26,
+  json: neutralHex[300], // 0xa8a8a8
+  md: neutralHex[300],
+  yml: 0xcb171e,
+  yaml: 0xcb171e,
+  py: 0x3776ab,
+  rs: 0xdea584,
+  go: tealHex[300], // 0x00add8
+  java: orangeHex[700], // 0xb07219
+  kt: purpleHex[300], // 0xa97bff
+  swift: 0xf05138,
+  rb: redHex[500], // 0xcc342d
+  sh: greenHex[200], // 0x89e051
   prisma: 0x5a67d8,
 };
 // Override ts to exact brand blue
@@ -302,20 +302,20 @@ extColors.ts = 0x3178c6;
 
 // ── Author palette (cycles through these) ───────────────────────────
 export const authorPalette = [
-  { hex: blueHex[500],    css: blue[500] },    // blue
-  { hex: greenHex[500],   css: green[500] },   // green
-  { hex: orangeHex[600],  css: orange[600] },  // orange
-  { hex: purpleHex[500],  css: purple[500] },  // purple
-  { hex: yellowHex[300],  css: yellow[300] },  // yellow
-  { hex: tealHex[500],    css: teal[500] },    // teal
-  { hex: redHex[600],     css: red[600] },     // red
-  { hex: blueHex[600],    css: blue[600] },    // dark blue
-  { hex: pinkHex[200],    css: pink[200] },    // pink
-  { hex: blueHex[100],    css: blue[100] },    // light blue
-  { hex: purpleHex[100],  css: purple[100] },  // lavender
-  { hex: greenHex[100],   css: green[100] },   // light green
-  { hex: redHex[100],     css: red[100] },     // peach
-  { hex: tealHex[100],    css: teal[100] },    // light teal
-  { hex: yellowHex[100],  css: yellow[100] },  // light yellow
-  { hex: blueHex[200],    css: blue[200] },    // periwinkle
+  { hex: blueHex[500], css: blue[500] }, // blue
+  { hex: greenHex[500], css: green[500] }, // green
+  { hex: orangeHex[600], css: orange[600] }, // orange
+  { hex: purpleHex[500], css: purple[500] }, // purple
+  { hex: yellowHex[300], css: yellow[300] }, // yellow
+  { hex: tealHex[500], css: teal[500] }, // teal
+  { hex: redHex[600], css: red[600] }, // red
+  { hex: blueHex[600], css: blue[600] }, // dark blue
+  { hex: pinkHex[200], css: pink[200] }, // pink
+  { hex: blueHex[100], css: blue[100] }, // light blue
+  { hex: purpleHex[100], css: purple[100] }, // lavender
+  { hex: greenHex[100], css: green[100] }, // light green
+  { hex: redHex[100], css: red[100] }, // peach
+  { hex: tealHex[100], css: teal[100] }, // light teal
+  { hex: yellowHex[100], css: yellow[100] }, // light yellow
+  { hex: blueHex[200], css: blue[200] }, // periwinkle
 ] as const;

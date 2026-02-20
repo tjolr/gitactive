@@ -6,7 +6,7 @@ const GAP = 0.05;
 export function commitHeight(filesChanged: number): number {
   // Logarithmic scale: 1 file → small, ~20+ files → 2.0
   const scaled = Math.log10(Math.max(filesChanged, 1)) / Math.log10(25);
-  const raw = MIN_BLOCK_HEIGHT + Math.min(scaled, 1) * 1.0;
+  const raw = MIN_BLOCK_HEIGHT + Math.min(scaled, 1) * 1.5;
   return Math.max(raw, MIN_BLOCK_HEIGHT);
 }
 
