@@ -50,8 +50,7 @@ function CameraController({ targetY }: { targetY: number }) {
   return (
     <OrbitControls
       ref={controlsRef}
-      autoRotate
-      autoRotateSpeed={0.5}
+      autoRotate={false}
       enableZoom
       enablePan={false}
       minDistance={3}

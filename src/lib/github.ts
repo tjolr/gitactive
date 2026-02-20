@@ -61,7 +61,7 @@ export async function fetchCommits(
 
   // Fetch commit list
   const commits = await fetchJSON<GitHubCommitListItem[]>(
-    `${baseUrl}/commits?per_page=20`,
+    `${baseUrl}/commits?per_page=10`,
     token
   );
 

@@ -2,7 +2,7 @@ import { useRef, useMemo, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 
-const PARTICLE_COUNT = 300;
+const PARTICLE_COUNT = 80;
 const SPREAD_XZ = 20;
 const SPREAD_Y = 20;
 

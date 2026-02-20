@@ -4,7 +4,7 @@ export function authorColor(username: string): string {
     hash = username.charCodeAt(i) + ((hash << 5) - hash);
   }
   const hue = Math.abs(hash) % 360;
-  return `hsl(${hue}, 70%, 55%)`;
+  return `hsl(${hue}, 45%, 38%)`;
 }
 
 export function authorColorHex(username: string): number {
@@ -14,8 +14,8 @@ export function authorColorHex(username: string): number {
   }
   const hue = Math.abs(hash) % 360;
   // Convert HSL to RGB then to hex number
-  const s = 0.7;
-  const l = 0.55;
+  const s = 0.45;
+  const l = 0.38;
   const c = (1 - Math.abs(2 * l - 1)) * s;
   const x = c * (1 - Math.abs(((hue / 60) % 2) - 1));
   const m = l - c / 2;

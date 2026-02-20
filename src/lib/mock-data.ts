@@ -91,7 +91,7 @@ function makeDate(i: number): string {
   return base.toISOString();
 }
 
-export const MOCK_COMMITS: CommitData[] = commits.slice(0, 20).map((c, i) => {
+export const MOCK_COMMITS: CommitData[] = commits.slice(0, 10).map((c, i) => {
   const author = pick(authors, c.authorIdx);
   const hash = sha(i);
   return {

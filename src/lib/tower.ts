@@ -1,29 +1,49 @@
 import type { CommitData } from "../types";
+import { MIN_BLOCK_HEIGHT } from "../components/scene/CommitBlock";
 
 const GAP = 0.05;
 
 export function commitHeight(filesChanged: number): number {
-  if (filesChanged <= 1) return 0.3;
-  // Logarithmic scale: 1 file → 0.3, ~20+ files → 2.0
-  const scaled = Math.log10(filesChanged) / Math.log10(25);
-  return 0.3 + Math.min(scaled, 1) * 1.7;
+  // Logarithmic scale: 1 file → small, ~20+ files → 2.0
+  const scaled = Math.log10(Math.max(filesChanged, 1)) / Math.log10(25);
+  const raw = MIN_BLOCK_HEIGHT + Math.min(scaled, 1) * 1.0;
+  return Math.max(raw, MIN_BLOCK_HEIGHT);
 }
 
 export interface BlockLayout {
   commit: CommitData;
   y: number;
   height: number;
+  dateLabel?: string;
+}
+
+function formatDate(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
 export function computeTowerLayout(commits: CommitData[]): BlockLayout[] {
-  // Oldest at bottom, newest on top
-  const ordered = [...commits].reverse();
+  // Sort by date ascending (oldest first) so oldest is at bottom
+  const ordered = [...commits].sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
 
-  const positions: { commit: CommitData; y: number; height: number }[] = [];
+  const positions: BlockLayout[] = [];
   let currentY = 0;
+  let lastDate = "";
+
   for (const commit of ordered) {
     const h = commitHeight(commit.filesChanged);
-    positions.push({ commit, y: currentY + h / 2, height: h });
+    const commitDate = new Date(commit.date).toDateString();
+    const isNewDate = commitDate !== lastDate;
+    lastDate = commitDate;
+
+    positions.push({
+      commit,
+      y: currentY + h / 2,
+      height: h,
+      ...(isNewDate ? { dateLabel: formatDate(commit.date) } : {}),
+    });
     currentY += h + GAP;
   }
 

@@ -12,11 +12,12 @@ interface CommitBlockProps {
 
 export const BLOCK_WIDTH = 3;
 const BLOCK_DEPTH = 3;
-const AVATAR_RADIUS = 0.18;
-const AVATAR_THICKNESS = 0.04;
-const PADDING = 0.12;
-const TEXT_SIZE = 0.1;
-const TEXT_DEPTH = 0.025;
+const AVATAR_RADIUS = 0.35;
+const AVATAR_THICKNESS = 0.18;
+const PADDING = 0.25;
+export const MIN_BLOCK_HEIGHT = AVATAR_RADIUS * 2 + PADDING * 2;
+const TEXT_SIZE = 0.09;
+const TEXT_DEPTH = 0.02;
 const LINE_HEIGHT = TEXT_SIZE * 1.35;
 const SIDE_OFFSET = BLOCK_DEPTH / 2 + 0.01;
 
@@ -69,44 +70,53 @@ function wrapText(title: string, maxLines: number): string[] {
   return lines;
 }
 
-function useAvatarTexture(url: string | undefined) {
-  const [texture, setTexture] = useState<THREE.Texture | null>(null);
+function AvatarCylinder({ url, color, position }: { url: string; color: number; position: [number, number, number] }) {
+  const matRef = useRef<THREE.MeshBasicMaterial>(null);
+  const protrude = AVATAR_THICKNESS * 0.6;
+  const outerRadius = AVATAR_RADIUS + 0.03;
 
   useEffect(() => {
-    if (!url) return;
-    const loader = new THREE.TextureLoader();
-    loader.setCrossOrigin("anonymous");
+    if (!url || !matRef.current) return;
     let cancelled = false;
-    loader.load(
-      url,
-      (tex) => { if (!cancelled) setTexture(tex); },
-      undefined,
-      () => { /* silently fail */ }
-    );
+
+    fetch(url, { mode: "cors" })
+      .then((res) => res.blob())
+      .then((blob) => createImageBitmap(blob))
+      .then((bitmap) => {
+        if (cancelled || !matRef.current) return;
+        const canvas = document.createElement("canvas");
+        canvas.width = 256;
+        canvas.height = 256;
+        const ctx = canvas.getContext("2d")!;
+        ctx.drawImage(bitmap, 0, 0, 256, 256);
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.needsUpdate = true;
+        matRef.current.map = tex;
+        matRef.current.color.set(0xffffff);
+        matRef.current.needsUpdate = true;
+      })
+      .catch(() => { /* silently fail — keeps fallback color */ });
+
     return () => { cancelled = true; };
   }, [url]);
 
-  return texture;
-}
-
-function AvatarCylinder({ url, color, position }: { url: string; color: number; position: [number, number, number] }) {
-  const texture = useAvatarTexture(url);
-
   return (
-    <group position={position}>
+    <group position={[position[0], position[1], position[2] + protrude]}>
       {/* Front face with image */}
       <mesh position={[0, 0, AVATAR_THICKNESS / 2]}>
         <circleGeometry args={[AVATAR_RADIUS, 32]} />
-        {texture ? (
-          <meshStandardMaterial map={texture} side={THREE.FrontSide} />
-        ) : (
-          <meshStandardMaterial color={color} side={THREE.FrontSide} />
-        )}
+        <meshBasicMaterial ref={matRef} color={color} toneMapped={false} side={THREE.FrontSide} />
+      </mesh>
+      {/* Back cap */}
+      <mesh position={[0, 0, -AVATAR_THICKNESS / 2]} rotation={[0, Math.PI, 0]}>
+        <circleGeometry args={[outerRadius, 32]} />
+        <meshStandardMaterial color={color} side={THREE.FrontSide} />
       </mesh>
       {/* Cylinder rim for depth */}
       <mesh rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[AVATAR_RADIUS, AVATAR_RADIUS, AVATAR_THICKNESS, 32, 1, true]} />
-        <meshStandardMaterial color={0x222233} metalness={0.5} roughness={0.4} side={THREE.DoubleSide} />
+        <cylinderGeometry args={[outerRadius, outerRadius, AVATAR_THICKNESS, 32, 1, true]} />
+        <meshStandardMaterial color={color} metalness={0.4} roughness={0.5} side={THREE.DoubleSide} />
       </mesh>
     </group>
   );
@@ -202,10 +212,10 @@ export function CommitBlock({ commit, position, height }: CommitBlockProps) {
       >
         <meshStandardMaterial
           color={color}
-          metalness={0.3}
-          roughness={0.6}
+          metalness={0.4}
+          roughness={0.5}
           emissive={color}
-          emissiveIntensity={hovered ? 0.3 : 0.05}
+          emissiveIntensity={hovered ? 0.2 : 0.03}
         />
       </RoundedBox>
 
