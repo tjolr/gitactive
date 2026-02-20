@@ -2,7 +2,8 @@ import { useRef, useState, useMemo, useEffect } from "react";
 import { Html, RoundedBox, Text3D, Center } from "@react-three/drei";
 import * as THREE from "three";
 import type { CommitData } from "../../types";
-import { authorColor, authorColorHex } from "../../lib/colors";
+import { authorColor, authorColorHex, timeAgo, timeAgoColor } from "../../lib/colors";
+import { TechLogoMedallion } from "./TechLogoMedallion";
 
 interface CommitBlockProps {
   commit: CommitData;
@@ -70,7 +71,9 @@ function wrapText(title: string, maxLines: number): string[] {
   return lines;
 }
 
-function AvatarCylinder({ url, color, position }: { url: string; color: number; position: [number, number, number] }) {
+const AVATAR_RIM_COLOR = 0x1a1a2e;
+
+function AvatarCylinder({ url, position }: { url: string; position: [number, number, number] }) {
   const matRef = useRef<THREE.MeshBasicMaterial>(null);
   const protrude = AVATAR_THICKNESS * 0.6;
   const outerRadius = AVATAR_RADIUS + 0.03;
@@ -106,17 +109,17 @@ function AvatarCylinder({ url, color, position }: { url: string; color: number; 
       {/* Front face with image */}
       <mesh position={[0, 0, AVATAR_THICKNESS / 2]}>
         <circleGeometry args={[AVATAR_RADIUS, 32]} />
-        <meshBasicMaterial ref={matRef} color={color} toneMapped={false} side={THREE.FrontSide} />
+        <meshBasicMaterial ref={matRef} color={AVATAR_RIM_COLOR} toneMapped={false} side={THREE.FrontSide} />
       </mesh>
       {/* Back cap */}
       <mesh position={[0, 0, -AVATAR_THICKNESS / 2]} rotation={[0, Math.PI, 0]}>
         <circleGeometry args={[outerRadius, 32]} />
-        <meshStandardMaterial color={color} side={THREE.FrontSide} />
+        <meshStandardMaterial color={AVATAR_RIM_COLOR} side={THREE.FrontSide} />
       </mesh>
       {/* Cylinder rim for depth */}
       <mesh rotation={[Math.PI / 2, 0, 0]}>
         <cylinderGeometry args={[outerRadius, outerRadius, AVATAR_THICKNESS, 32, 1, true]} />
-        <meshStandardMaterial color={color} metalness={0.4} roughness={0.5} side={THREE.DoubleSide} />
+        <meshStandardMaterial color={AVATAR_RIM_COLOR} metalness={0.4} roughness={0.5} side={THREE.DoubleSide} />
       </mesh>
     </group>
   );
@@ -148,7 +151,6 @@ function FaceContent({
     <>
       <AvatarCylinder
         url={commit.authorAvatar}
-        color={color}
         position={[AVATAR_X, 0, 0]}
       />
       <group position={[TEXT_LEFT, (totalTextHeight - LINE_HEIGHT) / 2, 0]}>
@@ -184,6 +186,7 @@ export function CommitBlock({ commit, position, height }: CommitBlockProps) {
   const [hovered, setHovered] = useState(false);
   const color = authorColorHex(commit.authorLogin);
   const cssColor = authorColor(commit.authorLogin);
+  const { hex: timeColor, css: timeCssColor } = useMemo(() => timeAgoColor(commit.date), [commit.date]);
 
   // Max lines based on block height
   const maxLines = useMemo(() => {
@@ -196,6 +199,7 @@ export function CommitBlock({ commit, position, height }: CommitBlockProps) {
     [commit.title, maxLines]
   );
 
+  const relTime = useMemo(() => timeAgo(commit.date), [commit.date]);
   const faceProps = { commit, color, lines, height };
 
   return (
@@ -229,6 +233,37 @@ export function CommitBlock({ commit, position, height }: CommitBlockProps) {
         <FaceContent {...faceProps} />
       </group>
 
+      {/* Right face — relative time */}
+      <group position={[BLOCK_WIDTH / 2 + 0.01, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
+        <Center>
+          <Text3D
+            font="/helvetiker_bold.typeface.json"
+            size={0.16}
+            height={0.02}
+            bevelEnabled
+            bevelThickness={0.004}
+            bevelSize={0.002}
+            bevelSegments={2}
+          >
+            {relTime}
+            <meshStandardMaterial
+              color={timeColor}
+              metalness={0.1}
+              roughness={0.5}
+              emissive={timeColor}
+              emissiveIntensity={0.15}
+            />
+          </Text3D>
+        </Center>
+      </group>
+
+      {/* Left face — tech logo */}
+      {commit.primaryLanguage && (
+        <group position={[-BLOCK_WIDTH / 2 - 0.01, 0, 0]} rotation={[0, -Math.PI / 2, 0]}>
+          <TechLogoMedallion language={commit.primaryLanguage} />
+        </group>
+      )}
+
       {/* Hover tooltip */}
       {hovered && (
         <Html
@@ -261,6 +296,9 @@ export function CommitBlock({ commit, position, height }: CommitBlockProps) {
             </div>
             <div style={{ color: "#e0e0e0", fontSize: "11px", marginBottom: "4px", lineHeight: 1.3 }}>
               {commit.title.length > 60 ? commit.title.slice(0, 60) + "..." : commit.title}
+            </div>
+            <div style={{ color: timeCssColor, fontSize: "10px", marginBottom: "4px" }}>
+              {timeAgo(commit.date)}
             </div>
             <div style={{ color: "#888899", fontSize: "10px" }}>
               {commit.shortSha} · {commit.filesChanged} file{commit.filesChanged !== 1 ? "s" : ""} · +{commit.stats.additions} -{commit.stats.deletions}

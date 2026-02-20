@@ -11,10 +11,13 @@ interface LandingPageProps {
   onCommitsLoaded: (commits: CommitData[], repo: RepoInfo) => void;
 }
 
+const LS_REPO_URL = "gitactive:repoUrl";
+const LS_TOKEN = "gitactive:token";
+
 export function LandingPage({ onCommitsLoaded }: LandingPageProps) {
-  const [repoUrl, setRepoUrl] = useState("");
-  const [token, setToken] = useState("");
-  const [showToken, setShowToken] = useState(false);
+  const [repoUrl, setRepoUrl] = useState(() => localStorage.getItem(LS_REPO_URL) ?? "");
+  const [token, setToken] = useState(() => localStorage.getItem(LS_TOKEN) ?? "");
+  const [showToken, setShowToken] = useState(() => !!localStorage.getItem(LS_TOKEN));
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState({ loaded: 0, total: 0 });
   const [error, setError] = useState("");
@@ -34,6 +37,10 @@ export function LandingPage({ onCommitsLoaded }: LandingPageProps) {
       );
       if (commits.length === 0) {
         throw new Error("No commits found in this repository");
+      }
+      localStorage.setItem(LS_REPO_URL, repoUrl);
+      if (token) {
+        localStorage.setItem(LS_TOKEN, token);
       }
       onCommitsLoaded(commits, repoInfo);
     } catch (err) {
@@ -58,7 +65,10 @@ export function LandingPage({ onCommitsLoaded }: LandingPageProps) {
               type="text"
               placeholder="https://github.com/owner/repo"
               value={repoUrl}
-              onChange={(e) => setRepoUrl(e.target.value)}
+              onChange={(e) => {
+                setRepoUrl(e.target.value);
+                localStorage.setItem(LS_REPO_URL, e.target.value);
+              }}
               className={input}
               disabled={loading}
               required
@@ -80,7 +90,14 @@ export function LandingPage({ onCommitsLoaded }: LandingPageProps) {
                 type="password"
                 placeholder="ghp_..."
                 value={token}
-                onChange={(e) => setToken(e.target.value)}
+                onChange={(e) => {
+                setToken(e.target.value);
+                if (e.target.value) {
+                  localStorage.setItem(LS_TOKEN, e.target.value);
+                } else {
+                  localStorage.removeItem(LS_TOKEN);
+                }
+              }}
                 className={input}
                 disabled={loading}
               />

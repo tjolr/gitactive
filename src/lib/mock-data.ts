@@ -1,4 +1,4 @@
-import type { CommitData, RepoInfo } from "../types";
+import type { CommitData, RepoInfo, TechLanguage } from "../types";
 
 export const MOCK_REPO: RepoInfo = { owner: "acme", repo: "webapp" };
 
@@ -29,17 +29,17 @@ function pick<T>(arr: T[], i: number): T {
   return arr[i % arr.length];
 }
 
-const commits: { msg: string; add: number; del: number; files: number; authorIdx: number }[] = [
-  { msg: "Initial project setup with Vite and React\n\nScaffolded the project using create-vite with React TypeScript template.", add: 342, del: 0, files: 18, authorIdx: 0 },
-  { msg: "Add ESLint and Prettier configuration", add: 89, del: 3, files: 3, authorIdx: 0 },
-  { msg: "Set up Tailwind CSS with custom theme tokens", add: 156, del: 12, files: 5, authorIdx: 2 },
-  { msg: "Create base layout components (Header, Sidebar, Main)", add: 287, del: 0, files: 7, authorIdx: 2 },
-  { msg: "Add React Router with route definitions\n\nSet up client-side routing for dashboard, settings, and profile pages.", add: 134, del: 8, files: 6, authorIdx: 3 },
-  { msg: "Implement authentication context and useAuth hook", add: 210, del: 0, files: 4, authorIdx: 0 },
-  { msg: "Build login page with email/password form", add: 178, del: 5, files: 3, authorIdx: 1 },
-  { msg: "Add JWT token refresh logic\n\nTokens now auto-refresh 5 minutes before expiry.", add: 95, del: 22, files: 2, authorIdx: 0 },
-  { msg: "Create user profile API client", add: 67, del: 0, files: 2, authorIdx: 4 },
-  { msg: "Fix login redirect not working after session timeout", add: 12, del: 8, files: 1, authorIdx: 3 },
+const commits: { msg: string; add: number; del: number; files: number; authorIdx: number; lang?: TechLanguage }[] = [
+  { msg: "Initial project setup with Vite and React\n\nScaffolded the project using create-vite with React TypeScript template.", add: 342, del: 0, files: 18, authorIdx: 0, lang: "react" },
+  { msg: "Add ESLint and Prettier configuration", add: 89, del: 3, files: 3, authorIdx: 0, lang: "typescript" },
+  { msg: "Set up Tailwind CSS with custom theme tokens", add: 156, del: 12, files: 5, authorIdx: 2, lang: "vue" },
+  { msg: "Create base layout components (Header, Sidebar, Main)", add: 287, del: 0, files: 7, authorIdx: 2, lang: "kotlin" },
+  { msg: "Add React Router with route definitions\n\nSet up client-side routing for dashboard, settings, and profile pages.", add: 134, del: 8, files: 6, authorIdx: 3, lang: "java" },
+  { msg: "Implement authentication context and useAuth hook", add: 210, del: 0, files: 4, authorIdx: 0, lang: "react" },
+  { msg: "Build login page with email/password form", add: 178, del: 5, files: 3, authorIdx: 1, lang: "typescript" },
+  { msg: "Add JWT token refresh logic\n\nTokens now auto-refresh 5 minutes before expiry.", add: 95, del: 22, files: 2, authorIdx: 0, lang: "vue" },
+  { msg: "Create user profile API client", add: 67, del: 0, files: 2, authorIdx: 4, lang: "kotlin" },
+  { msg: "Fix login redirect not working after session timeout", add: 12, del: 8, files: 1, authorIdx: 3, lang: "java" },
   { msg: "Add dashboard page with stats grid layout", add: 245, del: 0, files: 8, authorIdx: 2 },
   { msg: "Implement data fetching hooks with SWR\n\nAdded useFetch wrapper with error handling and retry logic.", add: 189, del: 34, files: 5, authorIdx: 4 },
   { msg: "Build bar chart component using Recharts", add: 156, del: 0, files: 3, authorIdx: 5 },
@@ -105,5 +105,6 @@ export const MOCK_COMMITS: CommitData[] = commits.slice(0, 10).map((c, i) => {
     date: makeDate(i),
     stats: { additions: c.add, deletions: c.del, total: c.add + c.del },
     filesChanged: c.files,
+    primaryLanguage: c.lang,
   };
 });

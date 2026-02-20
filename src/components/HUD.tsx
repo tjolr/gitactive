@@ -9,9 +9,11 @@ interface HUDProps {
   onBack: () => void;
   onScrollUp?: () => void;
   onScrollDown?: () => void;
+  onZoomIn: () => void;
+  onZoomOut: () => void;
 }
 
-export function HUD({ repo, commits, onBack, onScrollUp, onScrollDown }: HUDProps) {
+export function HUD({ repo, commits, onBack, onScrollUp, onScrollDown, onZoomIn, onZoomOut }: HUDProps) {
   const authors = useMemo(() => {
     const map = new Map<string, { login: string; count: number }>();
     for (const c of commits) {
@@ -53,6 +55,15 @@ export function HUD({ repo, commits, onBack, onScrollUp, onScrollDown }: HUDProp
           title="Older commits"
         >
           ▼
+        </button>
+      </div>
+
+      <div className={zoomControls}>
+        <button className={scrollBtn} onClick={onZoomIn} title="Zoom in">
+          +
+        </button>
+        <button className={scrollBtn} onClick={onZoomOut} title="Zoom out">
+          −
         </button>
       </div>
 
@@ -163,6 +174,15 @@ const scrollBtn = css({
     borderColor: "#2a2a3a",
     color: "#e0e0e0",
   },
+});
+
+const zoomControls = css({
+  position: "absolute",
+  right: "16px",
+  bottom: "60px",
+  display: "flex",
+  flexDirection: "column",
+  gap: "8px",
 });
 
 const legend = css({

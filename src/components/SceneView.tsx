@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useRef, useEffect } from "react";
 import { css } from "styled-system/css";
 import type { CommitData, RepoInfo } from "../types";
 import { computeTowerLayout, computeFloorY } from "../lib/tower";
@@ -34,15 +34,42 @@ export function SceneView({ commits, repo, onBack }: SceneViewProps) {
     setFocusIndex((i) => Math.min(layout.length - 1, i + SCROLL_STEP));
   }, [layout.length]);
 
+  const [zoom, setZoom] = useState(1);
+  const zoomIn = useCallback(() => setZoom((z) => Math.min(z * 1.3, 3)), []);
+  const zoomOut = useCallback(() => setZoom((z) => Math.max(z / 1.3, 0.4)), []);
+
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = wrapperRef.current;
+    if (!el) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      // Scroll down (positive deltaY) → older commits (lower index)
+      // Scroll up (negative deltaY) → newer commits (higher index)
+      if (e.deltaY > 0) {
+        setFocusIndex((i) => Math.max(0, i - 1));
+      } else if (e.deltaY < 0) {
+        setFocusIndex((i) => Math.min(layout.length - 1, i + 1));
+      }
+    };
+
+    el.addEventListener("wheel", handleWheel, { passive: false });
+    return () => el.removeEventListener("wheel", handleWheel);
+  }, [layout.length]);
+
   return (
-    <div className={wrapper}>
-      <CommitScene layout={layout} floorY={floorY} targetY={targetY} />
+    <div ref={wrapperRef} className={wrapper}>
+      <CommitScene layout={layout} floorY={floorY} targetY={targetY} zoom={zoom} />
       <HUD
         repo={repo}
         commits={commits}
         onBack={onBack}
         onScrollUp={canScrollUp ? scrollUp : undefined}
         onScrollDown={canScrollDown ? scrollDown : undefined}
+        onZoomIn={zoomIn}
+        onZoomOut={zoomOut}
       />
     </div>
   );
