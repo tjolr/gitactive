@@ -132,23 +132,19 @@ function FaceContent({
   lines,
   height,
   textDepth,
+  relTime,
+  timeColor,
 }: {
   commit: CommitData;
   color: number;
   lines: string[];
   height: number;
   textDepth: number;
+  relTime: string;
+  timeColor: number;
 }) {
   // Vertically center the content block (avatar + text lines)
   const totalTextHeight = lines.length * LINE_HEIGHT;
-  const contentHeight = Math.max(AVATAR_RADIUS * 2, totalTextHeight);
-  const _ = contentHeight; // used implicitly via centering
-  void _;
-
-  // Clamp avatar and text within block height
-  const usableHeight = height - PADDING * 2;
-  const maxContentHeight = Math.min(contentHeight, usableHeight);
-  void maxContentHeight;
 
   return (
     <>
@@ -180,6 +176,29 @@ function FaceContent({
           </Center>
         ))}
       </group>
+      {/* Time since — top right corner */}
+      <group position={[BLOCK_WIDTH / 2 - PADDING, height / 2 - PADDING - 0.05, 0]}>
+        <Center left top>
+          <Text3D
+            font="/helvetiker_bold.typeface.json"
+            size={0.1}
+            height={textDepth}
+            bevelEnabled
+            bevelThickness={0.003}
+            bevelSize={0.002}
+            bevelSegments={2}
+          >
+            {relTime}
+            <meshStandardMaterial
+              color={timeColor}
+              metalness={0.1}
+              roughness={0.5}
+              emissive={timeColor}
+              emissiveIntensity={0.15}
+            />
+          </Text3D>
+        </Center>
+      </group>
     </>
   );
 }
@@ -206,7 +225,7 @@ export function CommitBlock({ commit, position, height }: CommitBlockProps) {
   );
 
   const relTime = useMemo(() => timeAgo(commit.date), [commit.date]);
-  const faceProps = { commit, color, lines, height, textDepth };
+  const faceProps = { commit, color, lines, height, textDepth, relTime, timeColor };
 
   return (
     <group position={position}>
@@ -242,30 +261,6 @@ export function CommitBlock({ commit, position, height }: CommitBlockProps) {
       {/* Back face */}
       <group position={[0, 0, -SIDE_OFFSET]} rotation={[0, Math.PI, 0]}>
         <FaceContent {...faceProps} />
-      </group>
-
-      {/* Right face — relative time */}
-      <group position={[BLOCK_WIDTH / 2 + 0.01, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
-        <Center>
-          <Text3D
-            font="/helvetiker_bold.typeface.json"
-            size={0.16}
-            height={textDepth}
-            bevelEnabled
-            bevelThickness={0.004}
-            bevelSize={0.002}
-            bevelSegments={2}
-          >
-            {relTime}
-            <meshStandardMaterial
-              color={timeColor}
-              metalness={0.1}
-              roughness={0.5}
-              emissive={timeColor}
-              emissiveIntensity={0.15}
-            />
-          </Text3D>
-        </Center>
       </group>
 
       {/* Left face — tech logo */}
