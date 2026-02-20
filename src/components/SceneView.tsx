@@ -13,7 +13,7 @@ interface SceneViewProps {
 
 const SCROLL_SPEED = 0.01; // world units per pixel of wheel delta
 const SCROLL_STEP_Y = 3; // world units per HUD button click
-const ROTATE_STEP = Math.PI / 6; // radians per button click / key press
+const ROTATE_STEP = Math.PI / 16; // radians per button click / key press
 
 export function SceneView({ commits, repo, onBack }: SceneViewProps) {
   const layout = useMemo(() => computeTowerLayout(commits), [commits]);

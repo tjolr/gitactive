@@ -26,21 +26,30 @@ interface CommitBlockProps {
 const OCT_SIDE = 3;
 const N_SIDES = 8;
 const FRONT_FACE_WIDTH = OCT_SIDE;
-const OCT_APOTHEM = (OCT_SIDE / 2) / Math.tan(Math.PI / N_SIDES); // ≈3.621
-const OCT_CIRCUMRADIUS = (OCT_SIDE / 2) / Math.sin(Math.PI / N_SIDES); // ≈3.921
+const OCT_APOTHEM = OCT_SIDE / 2 / Math.tan(Math.PI / N_SIDES); // ≈3.621
+const OCT_CIRCUMRADIUS = OCT_SIDE / 2 / Math.sin(Math.PI / N_SIDES); // ≈3.921
 export const BLOCK_WIDTH = 2 * OCT_APOTHEM; // ≈7.243
 
 // Vertices in XZ plane, counterclockwise from front-right
 // Vertex k at angle (π/N + k·2π/N) from +Z
-const OCT_VERTS: [number, number][] = Array.from({ length: N_SIDES }, (_, k) => {
-  const angle = Math.PI / N_SIDES + k * (2 * Math.PI / N_SIDES);
-  return [OCT_CIRCUMRADIUS * Math.sin(angle), OCT_CIRCUMRADIUS * Math.cos(angle)];
-});
+const OCT_VERTS: [number, number][] = Array.from(
+  { length: N_SIDES },
+  (_, k) => {
+    const angle = Math.PI / N_SIDES + k * ((2 * Math.PI) / N_SIDES);
+    return [
+      OCT_CIRCUMRADIUS * Math.sin(angle),
+      OCT_CIRCUMRADIUS * Math.cos(angle),
+    ];
+  },
+);
 
 // Face k has outward normal at angle k·2π/N from +Z
 // Face center at (apothem·sin(θ), apothem·cos(θ))
 // Face 0 = front (+Z), face 1 = front-right, ... face 7 = front-left
-const FACE_ANGLES = Array.from({ length: N_SIDES }, (_, k) => k * (2 * Math.PI / N_SIDES));
+const FACE_ANGLES = Array.from(
+  { length: N_SIDES },
+  (_, k) => k * ((2 * Math.PI) / N_SIDES),
+);
 
 const AVATAR_RADIUS = 0.25;
 const AVATAR_THICKNESS = 0.14;
@@ -316,39 +325,48 @@ function FileStatsFace({
       {(() => {
         const barDepth = 0.08;
         const barProtrude = barDepth * 0.6;
-        let xOff = -maxFaceWidth / 2;
-        return breakdown.map((b, i) => {
+        // Precompute positions to avoid mutable xOff during render
+        const segments = breakdown.reduce<
+          { x: number; w: number; color: number }[]
+        >((acc, b) => {
+          const prevEnd =
+            acc.length > 0
+              ? acc[acc.length - 1].x + acc[acc.length - 1].w / 2
+              : -maxFaceWidth / 2;
           const w = (b.pct / 100) * maxFaceWidth;
-          const x = xOff + w / 2;
-          xOff += w;
-          const segW = Math.max(w - 0.01, 0.01);
-          return (
-            <group key={i} position={[x, barY, barProtrude]}>
-              <mesh>
-                <boxGeometry args={[segW, barHeight, barDepth]} />
-                <meshStandardMaterial
-                  color={b.color}
-                  metalness={0.35}
-                  roughness={0.35}
-                  emissive={b.color}
-                  emissiveIntensity={0.2}
-                />
-              </mesh>
-              {/* Edge highlight */}
-              <lineSegments>
-                <edgesGeometry
-                  args={[new THREE.BoxGeometry(segW, barHeight, barDepth)]}
-                />
-                <lineBasicMaterial
-                  color={b.color}
-                  toneMapped={false}
-                  transparent
-                  opacity={0.5}
-                />
-              </lineSegments>
-            </group>
-          );
-        });
+          acc.push({
+            x: prevEnd + w / 2,
+            w: Math.max(w - 0.01, 0.01),
+            color: b.color,
+          });
+          return acc;
+        }, []);
+        return segments.map((seg, i) => (
+          <group key={i} position={[seg.x, barY, barProtrude]}>
+            <mesh>
+              <boxGeometry args={[seg.w, barHeight, barDepth]} />
+              <meshStandardMaterial
+                color={seg.color}
+                metalness={0.35}
+                roughness={0.35}
+                emissive={seg.color}
+                emissiveIntensity={0.2}
+              />
+            </mesh>
+            {/* Edge highlight */}
+            <lineSegments>
+              <edgesGeometry
+                args={[new THREE.BoxGeometry(seg.w, barHeight, barDepth)]}
+              />
+              <lineBasicMaterial
+                color={seg.color}
+                toneMapped={false}
+                transparent
+                opacity={0.5}
+              />
+            </lineSegments>
+          </group>
+        ));
       })()}
 
       {/* Extension labels below bar — horizontal row */}
@@ -375,14 +393,21 @@ function FileStatsFace({
           itemWidths.push(itemW);
           totalW += itemW;
         }
-        let xOff = -totalW / 2;
+        // Precompute x positions to avoid mutable xOff during render
+        const xPositions = itemWidths.reduce<number[]>((acc) => {
+          const prev =
+            acc.length > 0
+              ? acc[acc.length - 1] + itemWidths[acc.length - 1]
+              : -totalW / 2;
+          acc.push(prev);
+          return acc;
+        }, []);
         return items.map((b, i) => {
           const logo = EXT_TO_LOGO[b.ext];
           const label = `.${b.ext} ${b.pct}%`;
           const s = scales[i];
           const iconW = logo ? baseIconSize * s : dotSize;
-          const x = xOff;
-          xOff += itemWidths[i];
+          const x = xPositions[i];
           return (
             <group key={b.ext}>
               {logo ? (
@@ -487,7 +512,11 @@ function FaceContent({
       </group>
       {/* Time since — top right corner */}
       <group
-        position={[FRONT_FACE_WIDTH / 2 - PADDING, height / 2 - PADDING - 0.05, 0]}
+        position={[
+          FRONT_FACE_WIDTH / 2 - PADDING,
+          height / 2 - PADDING - 0.05,
+          0,
+        ]}
       >
         <Center left top>
           <Text3D
@@ -611,7 +640,11 @@ export function CommitBlock({ commit, position, height }: CommitBlockProps) {
 
       {/* Face 1: Front-right — file stats */}
       <group
-        position={[Math.sin(FACE_ANGLES[1]) * faceD, 0, Math.cos(FACE_ANGLES[1]) * faceD]}
+        position={[
+          Math.sin(FACE_ANGLES[1]) * faceD,
+          0,
+          Math.cos(FACE_ANGLES[1]) * faceD,
+        ]}
         rotation={[0, FACE_ANGLES[1], 0]}
       >
         <FileStatsFace
@@ -625,7 +658,11 @@ export function CommitBlock({ commit, position, height }: CommitBlockProps) {
       {/* Face 7: Front-left — tech logo */}
       {commit.primaryLanguage && (
         <group
-          position={[Math.sin(FACE_ANGLES[7]) * faceD, 0, Math.cos(FACE_ANGLES[7]) * faceD]}
+          position={[
+            Math.sin(FACE_ANGLES[7]) * faceD,
+            0,
+            Math.cos(FACE_ANGLES[7]) * faceD,
+          ]}
           rotation={[0, FACE_ANGLES[7], 0]}
         >
           <TechLogoMedallion language={commit.primaryLanguage} />
