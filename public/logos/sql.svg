@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <rect width="256" height="256" rx="48" fill="#1a1a2e"/>
+  <!-- Database cylinder -->
+  <ellipse cx="128" cy="80" rx="60" ry="22" fill="#e38c00"/>
+  <rect x="68" y="80" width="120" height="90" fill="#e38c00"/>
+  <ellipse cx="128" cy="170" rx="60" ry="22" fill="#c47800"/>
+  <ellipse cx="128" cy="80" rx="60" ry="22" fill="#f5a623"/>
+  <!-- Middle band -->
+  <ellipse cx="128" cy="125" rx="60" ry="22" fill="none" stroke="#1a1a2e" stroke-width="3"/>
+</svg>

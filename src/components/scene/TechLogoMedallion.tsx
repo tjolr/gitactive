@@ -13,6 +13,22 @@ const LOGO_URLS: Record<TechLanguage, string> = {
   typescript: "/logos/typescript.svg",
   kotlin: "/logos/kotlin.svg",
   java: "/logos/java.svg",
+  sql: "/logos/sql.svg",
+  prisma: "/logos/prisma.svg",
+  json: "/logos/json.svg",
+};
+
+// Map file extensions to available logos
+export const EXT_TO_LOGO: Record<string, TechLanguage> = {
+  vue: "vue",
+  tsx: "react",
+  jsx: "react",
+  ts: "typescript",
+  kt: "kotlin",
+  java: "java",
+  sql: "sql",
+  prisma: "prisma",
+  json: "json",
 };
 
 // Module-level texture cache — each logo loaded only once
@@ -73,6 +89,52 @@ export function TechLogoMedallion({ language }: { language: TechLanguage }) {
       {/* Cylinder rim for depth */}
       <mesh rotation={[Math.PI / 2, 0, 0]}>
         <cylinderGeometry args={[OUTER_RADIUS, OUTER_RADIUS, THICKNESS, 32, 1, true]} />
+        <meshStandardMaterial color={RIM_COLOR} metalness={0.4} roughness={0.5} side={THREE.DoubleSide} />
+      </mesh>
+    </group>
+  );
+}
+
+const SMALL_RADIUS = 0.12;
+const SMALL_THICKNESS = 0.1;
+const SMALL_OUTER = SMALL_RADIUS + 0.02;
+
+export function SmallLogoIcon({ language, position, scale = 1 }: { language: TechLanguage; position: [number, number, number]; scale?: number }) {
+  const matRef = useRef<THREE.MeshBasicMaterial>(null);
+  const protrude = SMALL_THICKNESS * 0.6;
+
+  useEffect(() => {
+    let cancelled = false;
+    loadLogoTexture(language).then((tex) => {
+      if (cancelled || !matRef.current) return;
+      matRef.current.map = tex;
+      matRef.current.color.set(0xffffff);
+      matRef.current.needsUpdate = true;
+    }).catch(() => {});
+
+    return () => { cancelled = true; };
+  }, [language]);
+
+  const r = SMALL_RADIUS * scale;
+  const outer = r + 0.02;
+  const thick = SMALL_THICKNESS * scale;
+  const prot = thick * 0.6;
+
+  return (
+    <group position={[position[0], position[1], position[2] + prot]}>
+      {/* Front face with logo */}
+      <mesh position={[0, 0, thick / 2]}>
+        <circleGeometry args={[r, 24]} />
+        <meshBasicMaterial ref={matRef} color={RIM_COLOR} toneMapped={false} side={THREE.FrontSide} />
+      </mesh>
+      {/* Back cap */}
+      <mesh position={[0, 0, -thick / 2]} rotation={[0, Math.PI, 0]}>
+        <circleGeometry args={[outer, 24]} />
+        <meshStandardMaterial color={RIM_COLOR} side={THREE.FrontSide} />
+      </mesh>
+      {/* Cylinder rim for depth */}
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[outer, outer, thick, 24, 1, true]} />
         <meshStandardMaterial color={RIM_COLOR} metalness={0.4} roughness={0.5} side={THREE.DoubleSide} />
       </mesh>
     </group>
