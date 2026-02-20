@@ -22,19 +22,25 @@ interface CommitBlockProps {
   height: number;
 }
 
-// Regular hexagon: all 6 sides = HEX_SIDE
-const HEX_SIDE = 3;
-const FRONT_FACE_WIDTH = HEX_SIDE; // 2
-const SIDE_PROTRUDE = HEX_SIDE / 2; // 1
-const BLOCK_DEPTH = HEX_SIDE * Math.sqrt(3); // ≈3.464
-export const BLOCK_WIDTH = 2 * HEX_SIDE; // 4
+// Regular octagon: all 8 sides = OCT_SIDE
+const OCT_SIDE = 3;
+const N_SIDES = 8;
+const FRONT_FACE_WIDTH = OCT_SIDE;
+const OCT_APOTHEM = (OCT_SIDE / 2) / Math.tan(Math.PI / N_SIDES); // ≈3.621
+const OCT_CIRCUMRADIUS = (OCT_SIDE / 2) / Math.sin(Math.PI / N_SIDES); // ≈3.921
+export const BLOCK_WIDTH = 2 * OCT_APOTHEM; // ≈7.243
 
-const HEX_HALF_W = FRONT_FACE_WIDTH / 2; // 1
-const HEX_HALF_D = BLOCK_DEPTH / 2; // ≈1.732
-const ANGLED_FACE_WIDTH = HEX_SIDE; // all sides equal
-const ANGLED_NX = HEX_HALF_D / ANGLED_FACE_WIDTH;
-const ANGLED_NZ = SIDE_PROTRUDE / ANGLED_FACE_WIDTH;
-const ANGLED_APOTHEM = HEX_HALF_W * ANGLED_NX + HEX_HALF_D * ANGLED_NZ;
+// Vertices in XZ plane, counterclockwise from front-right
+// Vertex k at angle (π/N + k·2π/N) from +Z
+const OCT_VERTS: [number, number][] = Array.from({ length: N_SIDES }, (_, k) => {
+  const angle = Math.PI / N_SIDES + k * (2 * Math.PI / N_SIDES);
+  return [OCT_CIRCUMRADIUS * Math.sin(angle), OCT_CIRCUMRADIUS * Math.cos(angle)];
+});
+
+// Face k has outward normal at angle k·2π/N from +Z
+// Face center at (apothem·sin(θ), apothem·cos(θ))
+// Face 0 = front (+Z), face 1 = front-right, ... face 7 = front-left
+const FACE_ANGLES = Array.from({ length: N_SIDES }, (_, k) => k * (2 * Math.PI / N_SIDES));
 
 const AVATAR_RADIUS = 0.25;
 const AVATAR_THICKNESS = 0.14;
@@ -215,7 +221,7 @@ function FileStatsFace({
   commit,
   height,
   textDepth,
-  faceWidth = BLOCK_DEPTH,
+  faceWidth = OCT_SIDE,
 }: {
   commit: CommitData;
   height: number;
@@ -541,15 +547,14 @@ export function CommitBlock({ commit, position, height }: CommitBlockProps) {
     timeColor,
   };
 
-  // Hex prism geometry (XZ cross-section, extruded along Y)
-  const hexGeo = useMemo(() => {
+  // Octagonal prism geometry (XZ cross-section, extruded along Y)
+  const octGeo = useMemo(() => {
     const shape = new THREE.Shape();
-    shape.moveTo(-HEX_HALF_W, -HEX_HALF_D);
-    shape.lineTo(HEX_HALF_W, -HEX_HALF_D);
-    shape.lineTo(HEX_HALF_W + SIDE_PROTRUDE, 0);
-    shape.lineTo(HEX_HALF_W, HEX_HALF_D);
-    shape.lineTo(-HEX_HALF_W, HEX_HALF_D);
-    shape.lineTo(-HEX_HALF_W - SIDE_PROTRUDE, 0);
+    // Start at last vertex (front-left), then trace all 8 vertices
+    shape.moveTo(OCT_VERTS[N_SIDES - 1][0], OCT_VERTS[N_SIDES - 1][1]);
+    for (const [x, z] of OCT_VERTS) {
+      shape.lineTo(x, z);
+    }
     shape.closePath();
 
     const geo = new THREE.ExtrudeGeometry(shape, {
@@ -562,14 +567,12 @@ export function CommitBlock({ commit, position, height }: CommitBlockProps) {
     return geo;
   }, [height]);
 
-  // Angled face positions
-  const angledD = ANGLED_APOTHEM + 0.01;
-  const rfAngle = Math.atan2(ANGLED_NX, ANGLED_NZ);
-  const rbAngle = Math.atan2(ANGLED_NX, -ANGLED_NZ);
+  // Face position helper: face center at apothem distance along normal
+  const faceD = OCT_APOTHEM + 0.01;
 
   return (
     <group position={position}>
-      {/* Main hex prism */}
+      {/* Main octagonal prism */}
       <mesh
         ref={meshRef}
         onPointerOver={(e) => {
@@ -580,7 +583,7 @@ export function CommitBlock({ commit, position, height }: CommitBlockProps) {
         castShadow
         receiveShadow
       >
-        <primitive object={hexGeo} attach="geometry" />
+        <primitive object={octGeo} attach="geometry" />
         <meshStandardMaterial
           color={darkenHex(color, 0.55)}
           metalness={0.3}
@@ -592,53 +595,49 @@ export function CommitBlock({ commit, position, height }: CommitBlockProps) {
 
       {/* Bright border edges */}
       <lineSegments>
-        <edgesGeometry args={[hexGeo]} />
+        <edgesGeometry args={[octGeo]} />
         <lineBasicMaterial color={color} toneMapped={false} />
       </lineSegments>
 
-      {/* Front face (+Z) */}
-      <group position={[0, 0, HEX_HALF_D + 0.01]}>
+      {/* Face 0: Front (+Z) — commit info */}
+      <group position={[0, 0, faceD]} rotation={[0, 0, 0]}>
         <FaceContent {...faceProps} />
       </group>
 
-      {/* Back face (-Z) */}
-      <group position={[0, 0, -(HEX_HALF_D + 0.01)]} rotation={[0, Math.PI, 0]}>
+      {/* Face 4: Back (-Z) — commit info */}
+      <group position={[0, 0, -faceD]} rotation={[0, Math.PI, 0]}>
         <FaceContent {...faceProps} />
       </group>
 
-      {/* Right-front face — file stats */}
+      {/* Face 1: Front-right — file stats */}
       <group
-        position={[ANGLED_NX * angledD, 0, ANGLED_NZ * angledD]}
-        rotation={[0, rfAngle, 0]}
+        position={[Math.sin(FACE_ANGLES[1]) * faceD, 0, Math.cos(FACE_ANGLES[1]) * faceD]}
+        rotation={[0, FACE_ANGLES[1], 0]}
       >
         <FileStatsFace
           commit={commit}
           height={height}
           textDepth={textDepth}
-          faceWidth={ANGLED_FACE_WIDTH}
+          faceWidth={OCT_SIDE}
         />
       </group>
 
-      {/* Right-back face — empty */}
-      {/* (no content) */}
-
-      {/* Left-front face — tech logo */}
+      {/* Face 7: Front-left — tech logo */}
       {commit.primaryLanguage && (
         <group
-          position={[-ANGLED_NX * angledD, 0, ANGLED_NZ * angledD]}
-          rotation={[0, -rfAngle, 0]}
+          position={[Math.sin(FACE_ANGLES[7]) * faceD, 0, Math.cos(FACE_ANGLES[7]) * faceD]}
+          rotation={[0, FACE_ANGLES[7], 0]}
         >
           <TechLogoMedallion language={commit.primaryLanguage} />
         </group>
       )}
 
-      {/* Left-back face — empty */}
-      {/* (no content) */}
+      {/* Faces 2,3,5,6: empty */}
 
       {/* Hover tooltip */}
       {hovered && (
         <Html
-          position={[HEX_HALF_W + SIDE_PROTRUDE + 0.5, 0, 0]}
+          position={[OCT_APOTHEM + 0.5, 0, 0]}
           distanceFactor={8}
           style={{ pointerEvents: "none" }}
         >
