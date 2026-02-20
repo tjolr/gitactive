@@ -67,7 +67,7 @@ export function Particles({ targetY }: ParticlesProps) {
         />
       </bufferGeometry>
       <pointsMaterial
-        size={0.15}
+        size={0.06}
         color="#00ff88"
         transparent
         opacity={0.7}

@@ -64,45 +64,55 @@ export function timeAgo(dateStr: string): string {
   return `${years}y ago`;
 }
 
-// Assign hues by insertion order — guarantees maximum separation
-// between the actual authors in a given repo.
-const authorIndex = new Map<string, number>();
+// GitHub dark-mode label palette — curated colors that pop on dark backgrounds
+const GITHUB_LABEL_COLORS = [
+  { hex: 0x1d76db, css: "#1d76db" }, // blue
+  { hex: 0x0e8a16, css: "#0e8a16" }, // green
+  { hex: 0xd93f0b, css: "#d93f0b" }, // orange
+  { hex: 0x5319e7, css: "#5319e7" }, // purple
+  { hex: 0xfbca04, css: "#fbca04" }, // yellow
+  { hex: 0x006b75, css: "#006b75" }, // teal
+  { hex: 0xb60205, css: "#b60205" }, // red
+  { hex: 0x0052cc, css: "#0052cc" }, // dark blue
+  { hex: 0xe99695, css: "#e99695" }, // pink
+  { hex: 0xc5def5, css: "#c5def5" }, // light blue
+  { hex: 0xd4c5f9, css: "#d4c5f9" }, // lavender
+  { hex: 0xc2e0c6, css: "#c2e0c6" }, // light green
+  { hex: 0xf9d0c4, css: "#f9d0c4" }, // peach
+  { hex: 0xbfdadc, css: "#bfdadc" }, // light teal
+  { hex: 0xfef2c0, css: "#fef2c0" }, // light yellow
+  { hex: 0xbfd4f2, css: "#bfd4f2" }, // periwinkle
+] as const;
 
-function authorHue(username: string): number {
-  if (!authorIndex.has(username)) {
-    authorIndex.set(username, authorIndex.size);
-  }
-  const idx = authorIndex.get(username)!;
-  // Golden angle spacing starting from hue 0
-  return (idx * 137.508) % 360;
-}
+// Assign colors by insertion order — cycles through the palette
+const authorIndex = new Map<string, number>();
 
 /** Reset author color assignments (call when switching repos) */
 export function resetAuthorColors(): void {
   authorIndex.clear();
 }
 
-function hslToRgb(hue: number, s: number, l: number): [number, number, number] {
-  const c = (1 - Math.abs(2 * l - 1)) * s;
-  const x = c * (1 - Math.abs(((hue / 60) % 2) - 1));
-  const m = l - c / 2;
-  let r = 0, g = 0, b = 0;
-  if (hue < 60) { r = c; g = x; }
-  else if (hue < 120) { r = x; g = c; }
-  else if (hue < 180) { g = c; b = x; }
-  else if (hue < 240) { g = x; b = c; }
-  else if (hue < 300) { r = x; b = c; }
-  else { r = c; b = x; }
-  return [Math.round((r + m) * 255), Math.round((g + m) * 255), Math.round((b + m) * 255)];
+function getAuthorIndex(username: string): number {
+  if (!authorIndex.has(username)) {
+    authorIndex.set(username, authorIndex.size);
+  }
+  return authorIndex.get(username)!;
 }
 
 export function authorColor(username: string): string {
-  const hue = authorHue(username);
-  return `hsl(${Math.round(hue)}, 70%, 45%)`;
+  const idx = getAuthorIndex(username);
+  return GITHUB_LABEL_COLORS[idx % GITHUB_LABEL_COLORS.length].css;
 }
 
 export function authorColorHex(username: string): number {
-  const hue = authorHue(username);
-  const [ri, gi, bi] = hslToRgb(hue, 0.70, 0.45);
-  return (ri << 16) | (gi << 8) | bi;
+  const idx = getAuthorIndex(username);
+  return GITHUB_LABEL_COLORS[idx % GITHUB_LABEL_COLORS.length].hex;
+}
+
+/** Darken a hex color by a factor (0 = black, 1 = original) */
+export function darkenHex(hex: number, factor: number): number {
+  const r = Math.round(((hex >> 16) & 0xff) * factor);
+  const g = Math.round(((hex >> 8) & 0xff) * factor);
+  const b = Math.round((hex & 0xff) * factor);
+  return (r << 16) | (g << 8) | b;
 }

@@ -1,9 +1,9 @@
 import { useRef, useState, useMemo, useEffect } from "react";
-import { Html, RoundedBox, Text3D, Center } from "@react-three/drei";
+import { Html, Text3D, Center } from "@react-three/drei";
 import { useControls } from "leva";
 import * as THREE from "three";
 import type { CommitData } from "../../types";
-import { authorColor, authorColorHex, timeAgo, timeAgoColor } from "../../lib/colors";
+import { authorColor, authorColorHex, darkenHex, timeAgo, timeAgoColor } from "../../lib/colors";
 import { TechLogoMedallion } from "./TechLogoMedallion";
 
 interface CommitBlockProps {
@@ -210,24 +210,29 @@ export function CommitBlock({ commit, position, height }: CommitBlockProps) {
 
   return (
     <group position={position}>
-      <RoundedBox
+      {/* Main block — darker tinted faces */}
+      <mesh
         ref={meshRef}
-        args={[BLOCK_WIDTH, height, BLOCK_DEPTH]}
-        radius={0.15}
-        smoothness={4}
         onPointerOver={(e) => { e.stopPropagation(); setHovered(true); }}
         onPointerOut={() => setHovered(false)}
         castShadow
         receiveShadow
       >
+        <boxGeometry args={[BLOCK_WIDTH, height, BLOCK_DEPTH]} />
         <meshStandardMaterial
-          color={color}
-          metalness={0.4}
-          roughness={0.5}
+          color={darkenHex(color, 0.55)}
+          metalness={0.3}
+          roughness={0.6}
           emissive={color}
-          emissiveIntensity={hovered ? 0.2 : 0.03}
+          emissiveIntensity={hovered ? 0.15 : 0.03}
         />
-      </RoundedBox>
+      </mesh>
+
+      {/* Bright border edges */}
+      <lineSegments>
+        <edgesGeometry args={[new THREE.BoxGeometry(BLOCK_WIDTH, height, BLOCK_DEPTH)]} />
+        <lineBasicMaterial color={color} toneMapped={false} />
+      </lineSegments>
 
       {/* Front face */}
       <group position={[0, 0, SIDE_OFFSET]}>

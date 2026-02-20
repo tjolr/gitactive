@@ -41,41 +41,36 @@ export function HUD({ repo, commits, onBack, onScrollUp, onScrollDown, onRotateL
         </button>
       </div>
 
-      <div className={dpad}>
-        <div className={dpadRow}>
-          <div className={dpadSpacer} />
-          <button
-            className={scrollBtn}
-            onClick={onScrollUp}
-            disabled={!onScrollUp}
-            title="Scroll up (↑)"
-          >
-            ▲
-          </button>
-          <div className={dpadSpacer} />
-        </div>
-        <div className={dpadRow}>
-          <button className={scrollBtn} onClick={onRotateLeft} title="Rotate left (←)">
-            ◀
-          </button>
-          <div className={dpadSpacer} />
-          <button className={scrollBtn} onClick={onRotateRight} title="Rotate right (→)">
-            ▶
-          </button>
-        </div>
-        <div className={dpadRow}>
-          <div className={dpadSpacer} />
-          <button
-            className={scrollBtn}
-            onClick={onScrollDown}
-            disabled={!onScrollDown}
-            title="Scroll down (↓)"
-          >
-            ▼
-          </button>
-          <div className={dpadSpacer} />
-        </div>
-      </div>
+      <button
+        className={`${scrollBtn} ${edgeTop}`}
+        onClick={onScrollUp}
+        disabled={!onScrollUp}
+        title="Scroll up (↑)"
+      >
+        ▲
+      </button>
+      <button
+        className={`${scrollBtn} ${edgeBottom}`}
+        onClick={onScrollDown}
+        disabled={!onScrollDown}
+        title="Scroll down (↓)"
+      >
+        ▼
+      </button>
+      <button
+        className={`${scrollBtn} ${edgeLeft}`}
+        onClick={onRotateLeft}
+        title="Rotate left (←)"
+      >
+        ◀
+      </button>
+      <button
+        className={`${scrollBtn} ${edgeRight}`}
+        onClick={onRotateRight}
+        title="Rotate right (→)"
+      >
+        ▶
+      </button>
 
       <div className={zoomControls}>
         <button className={scrollBtn} onClick={onZoomIn} title="Zoom in">
@@ -157,25 +152,32 @@ const backBtn = css({
   },
 });
 
-const dpad = css({
+const edgeTop = css({
+  position: "absolute",
+  top: "16px",
+  left: "50%",
+  transform: "translateX(-50%)",
+});
+
+const edgeBottom = css({
+  position: "absolute",
+  bottom: "60px",
+  left: "50%",
+  transform: "translateX(-50%)",
+});
+
+const edgeLeft = css({
+  position: "absolute",
+  left: "16px",
+  top: "50%",
+  transform: "translateY(-50%)",
+});
+
+const edgeRight = css({
   position: "absolute",
   right: "16px",
   top: "50%",
   transform: "translateY(-50%)",
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  gap: "4px",
-});
-
-const dpadRow = css({
-  display: "flex",
-  gap: "4px",
-});
-
-const dpadSpacer = css({
-  width: "40px",
-  height: "40px",
 });
 
 const scrollBtn = css({
