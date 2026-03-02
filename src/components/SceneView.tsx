@@ -8,7 +8,9 @@ import { HUD } from "./HUD";
 interface SceneViewProps {
   commits: CommitData[];
   repo: RepoInfo;
+  repoHistory: string[];
   onBack: () => void;
+  onSwitchRepo: (url: string) => void;
 }
 
 const SCROLL_SPEED = 0.01; // world units per pixel of wheel delta
@@ -16,7 +18,7 @@ const SCROLL_STEP_Y = 3; // world units per HUD button click
 const ROTATE_STEP = Math.PI / 16; // radians per button click / key press
 const DRAG_ROTATE_SPEED = 0.005; // radians per pixel of mouse drag
 
-export function SceneView({ commits, repo, onBack }: SceneViewProps) {
+export function SceneView({ commits, repo, repoHistory, onBack, onSwitchRepo }: SceneViewProps) {
   const layout = useMemo(() => computeTowerLayout(commits), [commits]);
   const floorY = useMemo(() => computeFloorY(layout), [layout]);
 
@@ -135,7 +137,9 @@ export function SceneView({ commits, repo, onBack }: SceneViewProps) {
       <HUD
         repo={repo}
         commits={commits}
+        repoHistory={repoHistory}
         onBack={onBack}
+        onSwitchRepo={onSwitchRepo}
         onScrollUp={canScrollUp ? scrollUp : undefined}
         onScrollDown={canScrollDown ? scrollDown : undefined}
         onRotateLeft={rotateLeft}

@@ -14,7 +14,6 @@ import type { CommitData } from "../../types";
 import {
   EXT_TO_LOGO,
   SmallLogoIcon,
-  TechLogoMedallion,
 } from "./TechLogoMedallion";
 
 interface CommitBlockProps {
@@ -25,8 +24,8 @@ interface CommitBlockProps {
 }
 
 const ENTRY_Y_OFFSET = 16; // units above final position
-const SPRING_K = 12;       // spring stiffness — lower = slower, more floaty
-const SPRING_DAMP = 6;     // damping — slightly underdamped for gentle bounce
+const SPRING_K = 0.16;     // spring stiffness — lower = slower, more floaty
+const SPRING_DAMP = 0.7;   // damping — slightly underdamped for gentle bounce
 
 // Regular octagon: all 8 sides = OCT_SIDE
 const OCT_SIDE = 3;
@@ -232,6 +231,148 @@ function computeExtBreakdown(files: CommitData["files"]): ExtBreakdown[] {
       color: extColors[ext] ?? stat.grey,
     }))
     .sort((a, b) => b.changes - a.changes);
+}
+
+function FileListFace({
+  commit,
+  height,
+  textDepth,
+  faceWidth = OCT_SIDE,
+}: {
+  commit: CommitData;
+  height: number;
+  textDepth: number;
+  faceWidth?: number;
+}) {
+  const maxW = faceWidth - PADDING * 2;
+  const lineH = STATS_SMALL * 1.45;
+  // Empirical char width for helvetiker bold at STATS_SMALL size in 3D
+  const cwSmall = STATS_SMALL * 0.75;
+
+  const usable = height - PADDING * 2;
+  const maxRows = Math.max(1, Math.floor(usable / lineH));
+
+  const files = commit.files.slice(0, maxRows);
+  const hasMore = commit.files.length > maxRows;
+
+  // Build stats string per file so we can reserve exact width
+  const fileEntries = files.map((f) => {
+    const parts: string[] = [];
+    if (f.additions > 0) parts.push(`+${f.additions}`);
+    if (f.deletions > 0) parts.push(`-${f.deletions}`);
+    const statsStr = parts.join(" ");
+    // Reserve space for stats + gap (3 char gap between name and stats)
+    const statsChars = statsStr.length > 0 ? statsStr.length + 3 : 0;
+    const nameMax = Math.min(50, Math.max(6, Math.floor(maxW / cwSmall) - statsChars));
+    let name = f.filename;
+    if (name.length > nameMax) {
+      name = ".." + name.slice(name.length - nameMax + 2);
+    }
+    return { name, statsStr, additions: f.additions, deletions: f.deletions, nameMax };
+  });
+
+  const topY = usable / 2 - STATS_SMALL * 0.5;
+
+  return (
+    <group>
+      {fileEntries.map((entry, i) => {
+        const y = topY - i * lineH;
+        const nameX = -maxW / 2;
+        // Right-align stats at the face edge
+        const statsW = entry.statsStr.length * cwSmall;
+        const statsX = maxW / 2 - statsW;
+
+        const addStr = entry.additions > 0 ? `+${entry.additions}` : "";
+        const delStr = entry.deletions > 0 ? `-${entry.deletions}` : "";
+        const delX = addStr
+          ? statsX + (addStr.length + 1) * cwSmall
+          : statsX;
+
+        return (
+          <group key={i} position={[0, y, 0]}>
+            {/* Filename */}
+            <group position={[nameX, 0, 0]}>
+              <Text3D
+                font="/helvetiker_bold.typeface.json"
+                size={STATS_SMALL}
+                height={textDepth}
+                {...SMALL_BEVEL}
+              >
+                {entry.name}
+                <meshStandardMaterial
+                  color={white.hex}
+                  metalness={0.1}
+                  roughness={0.5}
+                  emissive={white.hex}
+                  emissiveIntensity={0.08}
+                />
+              </Text3D>
+            </group>
+            {/* +N right-aligned */}
+            {addStr && (
+              <group position={[statsX, 0, 0]}>
+                <Text3D
+                  font="/helvetiker_bold.typeface.json"
+                  size={STATS_SMALL}
+                  height={textDepth}
+                  {...SMALL_BEVEL}
+                >
+                  {addStr}
+                  <meshStandardMaterial
+                    color={GREEN}
+                    metalness={0.1}
+                    roughness={0.5}
+                    emissive={GREEN}
+                    emissiveIntensity={0.2}
+                  />
+                </Text3D>
+              </group>
+            )}
+            {/* -N right-aligned */}
+            {delStr && (
+              <group position={[delX, 0, 0]}>
+                <Text3D
+                  font="/helvetiker_bold.typeface.json"
+                  size={STATS_SMALL}
+                  height={textDepth}
+                  {...SMALL_BEVEL}
+                >
+                  {delStr}
+                  <meshStandardMaterial
+                    color={RED}
+                    metalness={0.1}
+                    roughness={0.5}
+                    emissive={RED}
+                    emissiveIntensity={0.2}
+                  />
+                </Text3D>
+              </group>
+            )}
+          </group>
+        );
+      })}
+      {/* "and N more" indicator */}
+      {hasMore && (
+        <group position={[-maxW / 2, topY - files.length * lineH, 0]}>
+          <Text3D
+            font="/helvetiker_bold.typeface.json"
+            size={STATS_SMALL * 0.85}
+            height={textDepth}
+            {...SMALL_BEVEL}
+          >
+            {`+${commit.files.length - maxRows} more`}
+            <meshStandardMaterial
+              color={STAT_GREY}
+              metalness={0.1}
+              roughness={0.5}
+              emissive={STAT_GREY}
+              emissiveIntensity={0.1}
+            />
+          </Text3D>
+        </group>
+      )}
+    </group>
+  );
 }
 
 function FileStatsFace({
@@ -688,8 +829,8 @@ export function CommitBlock({ commit, position, height, isNew = false }: CommitB
         />
       </group>
 
-      {/* Face 7: Front-left — tech logo */}
-      {commit.primaryLanguage && (
+      {/* Face 7: Front-left — file list */}
+      {commit.files.length > 0 && (
         <group
           position={[
             Math.sin(FACE_ANGLES[7]) * faceD,
@@ -698,7 +839,12 @@ export function CommitBlock({ commit, position, height, isNew = false }: CommitB
           ]}
           rotation={[0, FACE_ANGLES[7], 0]}
         >
-          <TechLogoMedallion language={commit.primaryLanguage} />
+          <FileListFace
+            commit={commit}
+            height={height}
+            textDepth={textDepth}
+            faceWidth={OCT_SIDE}
+          />
         </group>
       )}
 

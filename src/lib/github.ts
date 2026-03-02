@@ -51,6 +51,68 @@ async function fetchJSON<T>(url: string, token?: string): Promise<T> {
   return res.json();
 }
 
+export async function fetchCommitsSince(
+  repoInfo: RepoInfo,
+  since: string,
+  knownShas: Set<string>,
+  token?: string
+): Promise<CommitData[]> {
+  const { owner, repo } = repoInfo;
+  const baseUrl = `https://api.github.com/repos/${owner}/${repo}`;
+
+  const list = await fetchJSON<GitHubCommitListItem[]>(
+    `${baseUrl}/commits?per_page=20&since=${encodeURIComponent(since)}`,
+    token
+  );
+
+  const newItems = list.filter((c) => !knownShas.has(c.sha));
+  if (newItems.length === 0) return [];
+
+  const results: CommitData[] = [];
+  for (let i = 0; i < newItems.length; i += 5) {
+    const batch = newItems.slice(i, i + 5);
+    const details = await Promise.all(
+      batch.map(async (c) => {
+        try {
+          const detail = await fetchJSON<GitHubCommitDetail>(
+            `${baseUrl}/commits/${c.sha}`,
+            token
+          );
+          const files = (detail.files ?? []).map((f) => ({
+            filename: f.filename,
+            additions: f.additions,
+            deletions: f.deletions,
+            changes: f.changes,
+          }));
+          return { stats: detail.stats, filesChanged: files.length, files };
+        } catch {
+          return { stats: { additions: 0, deletions: 0, total: 0 }, filesChanged: 0, files: [] };
+        }
+      })
+    );
+
+    for (let j = 0; j < batch.length; j++) {
+      const c = batch[j];
+      const detail = details[j];
+      results.push({
+        sha: c.sha,
+        shortSha: c.sha.slice(0, 7),
+        message: c.commit.message,
+        title: c.commit.message.split("\n")[0],
+        authorName: c.commit.author.name,
+        authorLogin: c.author?.login ?? c.commit.author.name,
+        authorAvatar: c.author?.avatar_url ?? "",
+        date: c.commit.author.date,
+        stats: detail.stats,
+        filesChanged: detail.filesChanged,
+        files: detail.files,
+      });
+    }
+  }
+
+  return results;
+}
+
 export async function fetchCommits(
   repoInfo: RepoInfo,
   token?: string,
