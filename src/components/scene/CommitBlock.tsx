@@ -1,4 +1,5 @@
 import { Center, Html, Text3D } from "@react-three/drei";
+import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import {
@@ -20,7 +21,12 @@ interface CommitBlockProps {
   commit: CommitData;
   position: [number, number, number];
   height: number;
+  isNew?: boolean;
 }
+
+const ENTRY_Y_OFFSET = 16; // units above final position
+const SPRING_K = 12;       // spring stiffness — lower = slower, more floaty
+const SPRING_DAMP = 6;     // damping — slightly underdamped for gentle bounce
 
 // Regular octagon: all 8 sides = OCT_SIDE
 const OCT_SIDE = 3;
@@ -117,6 +123,7 @@ function AvatarCylinder({
   position: [number, number, number];
 }) {
   const matRef = useRef<THREE.MeshBasicMaterial>(null);
+  const { invalidate } = useThree();
   const protrude = AVATAR_THICKNESS * 0.6;
   const outerRadius = AVATAR_RADIUS + 0.03;
 
@@ -140,6 +147,7 @@ function AvatarCylinder({
         matRef.current.map = tex;
         matRef.current.color.set(white.hex);
         matRef.current.needsUpdate = true;
+        invalidate();
       })
       .catch(() => {
         /* silently fail — keeps fallback color */
@@ -543,9 +551,31 @@ function FaceContent({
   );
 }
 
-export function CommitBlock({ commit, position, height }: CommitBlockProps) {
+export function CommitBlock({ commit, position, height, isNew = false }: CommitBlockProps) {
   const meshRef = useRef<THREE.Mesh>(null);
+  const groupRef = useRef<THREE.Group>(null);
+  const yOffsetRef = useRef(isNew ? ENTRY_Y_OFFSET : 0);
+  const yVelocityRef = useRef(0);
   const [hovered, setHovered] = useState(false);
+
+  const { invalidate } = useThree();
+
+  useFrame((_, delta) => {
+    if (yOffsetRef.current === 0 && yVelocityRef.current === 0) return;
+    const dt = Math.min(delta, 0.05);
+    const springForce = -SPRING_K * yOffsetRef.current;
+    const dampForce = -SPRING_DAMP * yVelocityRef.current;
+    yVelocityRef.current += (springForce + dampForce) * dt;
+    yOffsetRef.current += yVelocityRef.current * dt;
+    if (Math.abs(yOffsetRef.current) < 0.001 && Math.abs(yVelocityRef.current) < 0.001) {
+      yOffsetRef.current = 0;
+      yVelocityRef.current = 0;
+    }
+    if (groupRef.current) {
+      groupRef.current.position.y = position[1] + yOffsetRef.current;
+    }
+    invalidate();
+  });
   const color = authorColorHex(commit.authorLogin);
   const cssColor = authorColor(commit.authorLogin);
   const { hex: timeColor, css: timeCssColor } = useMemo(
@@ -600,7 +630,10 @@ export function CommitBlock({ commit, position, height }: CommitBlockProps) {
   const faceD = OCT_APOTHEM + 0.01;
 
   return (
-    <group position={position}>
+    <group
+      ref={groupRef}
+      position={[position[0], position[1] + yOffsetRef.current, position[2]]}
+    >
       {/* Main octagonal prism */}
       <mesh
         ref={meshRef}

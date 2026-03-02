@@ -21,15 +21,15 @@ interface CommitSceneProps {
 }
 
 function CameraController({ targetY, angle, zoom }: { targetY: number; angle: number; zoom: number }) {
-  const { camera } = useThree();
+  const { camera, invalidate } = useThree();
   const targetRef = useRef(targetY);
   const angleRef = useRef(angle);
   const zoomRef = useRef(zoom);
   const currentAngle = useRef(angle);
 
-  useEffect(() => { targetRef.current = targetY; }, [targetY]);
-  useEffect(() => { angleRef.current = angle; }, [angle]);
-  useEffect(() => { zoomRef.current = zoom; }, [zoom]);
+  useEffect(() => { targetRef.current = targetY; invalidate(); }, [targetY, invalidate]);
+  useEffect(() => { angleRef.current = angle; invalidate(); }, [angle, invalidate]);
+  useEffect(() => { zoomRef.current = zoom; invalidate(); }, [zoom, invalidate]);
 
   // Set initial position on mount
   useEffect(() => {
@@ -39,23 +39,27 @@ function CameraController({ targetY, angle, zoom }: { targetY: number; angle: nu
       Math.sin(angle) * INITIAL_DISTANCE
     );
     camera.lookAt(0, targetY, 0);
+    invalidate();
     // Only on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useFrame(() => {
     const cam = camera as THREE.PerspectiveCamera;
+    let moving = false;
 
     // Smooth Y interpolation
     const diffY = targetRef.current - cam.position.y;
     if (Math.abs(diffY) > 0.01) {
       cam.position.y += diffY * 0.08;
+      moving = true;
     }
 
     // Smooth angle interpolation
     const angleDiff = angleRef.current - currentAngle.current;
     if (Math.abs(angleDiff) > 0.001) {
       currentAngle.current += angleDiff * 0.08;
+      moving = true;
     }
 
     // Smooth zoom interpolation — compute desired distance
@@ -67,12 +71,20 @@ function CameraController({ targetY, angle, zoom }: { targetY: number; angle: nu
     const currentDist = Math.sqrt(cam.position.x ** 2 + cam.position.z ** 2);
     const diffDist = desiredDist - currentDist;
     const dist = Math.abs(diffDist) > 0.01 ? currentDist + diffDist * 0.08 : currentDist;
+    if (Math.abs(diffDist) > 0.01) {
+      moving = true;
+    }
 
     // Apply angle + distance on XZ plane
     cam.position.x = Math.cos(currentAngle.current) * dist;
     cam.position.z = Math.sin(currentAngle.current) * dist;
 
     cam.lookAt(0, cam.position.y, 0);
+
+    // Keep rendering while the camera is still interpolating
+    if (moving) {
+      invalidate();
+    }
   });
 
   return null;
@@ -82,6 +94,7 @@ export function CommitScene({ layout, floorY, targetY, angle, zoom }: CommitScen
   return (
     <Canvas
       shadows
+      frameloop="demand"
       camera={{ position: [Math.cos(angle) * INITIAL_DISTANCE, targetY, Math.sin(angle) * INITIAL_DISTANCE], fov: 50 }}
       gl={{ antialias: true, toneMapping: 0 }}
       style={{ width: "100%", height: "100%" }}

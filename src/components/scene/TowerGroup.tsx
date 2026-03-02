@@ -1,4 +1,5 @@
 import { Html } from "@react-three/drei";
+import { useEffect, useRef } from "react";
 import { BLOCK_WIDTH } from "./CommitBlock";
 import { neutral, scene } from "../../lib/palette";
 import type { BlockLayout } from "../../lib/tower";
@@ -9,6 +10,19 @@ interface TowerGroupProps {
 }
 
 export function TowerGroup({ layout }: TowerGroupProps) {
+  const knownShas = useRef<Set<string>>(new Set());
+  const isInitialized = useRef(false);
+
+  // Compute new SHAs during render (before the effect updates knownShas)
+  const newShas = isInitialized.current
+    ? new Set(layout.map((b) => b.commit.sha).filter((sha) => !knownShas.current.has(sha)))
+    : new Set<string>();
+
+  useEffect(() => {
+    isInitialized.current = true;
+    layout.forEach((b) => knownShas.current.add(b.commit.sha));
+  }, [layout]);
+
   return (
     <group>
       {layout.map((block) => (
@@ -17,6 +31,7 @@ export function TowerGroup({ layout }: TowerGroupProps) {
             commit={block.commit}
             position={[0, block.y, 0]}
             height={block.height}
+            isNew={newShas.has(block.commit.sha)}
           />
           {block.dateLabel && (
             <Html
