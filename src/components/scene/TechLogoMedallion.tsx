@@ -98,11 +98,9 @@ export function TechLogoMedallion({ language }: { language: TechLanguage }) {
 
 const SMALL_RADIUS = 0.12;
 const SMALL_THICKNESS = 0.1;
-const SMALL_OUTER = SMALL_RADIUS + 0.02;
 
 export function SmallLogoIcon({ language, position, scale = 1 }: { language: TechLanguage; position: [number, number, number]; scale?: number }) {
   const matRef = useRef<THREE.MeshBasicMaterial>(null);
-  const protrude = SMALL_THICKNESS * 0.6;
 
   useEffect(() => {
     let cancelled = false;
