@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback, useRef, useEffect } from "react";
+import { useMemo, useState, useCallback, useRef, useEffect, useLayoutEffect } from "react";
 import { css } from "styled-system/css";
 import type { CommitData, RepoInfo } from "../types";
 import { computeTowerLayout, computeFloorY } from "../lib/tower";
@@ -27,6 +27,17 @@ export function SceneView({ commits, repo, repoHistory, onBack, onSwitchRepo }: 
 
   // Continuous Y target — start at the top (newest commits)
   const [targetY, setTargetY] = useState(maxY);
+
+  // When the tower re-centers (new commits added), all block Y positions shift.
+  // Compensate targetY by the same delta so the camera appears to stay still.
+  const prevMinYRef = useRef(minY);
+  useLayoutEffect(() => {
+    const delta = minY - prevMinYRef.current;
+    prevMinYRef.current = minY;
+    if (Math.abs(delta) > 0.001) {
+      setTargetY((y) => y + delta);
+    }
+  }, [layout]); // layout as dep so this fires exactly when re-centering happens
   const [angle, setAngle] = useState(Math.PI / 4); // horizontal orbit angle (radians)
 
   const clampY = useCallback(
@@ -136,7 +147,7 @@ export function SceneView({ commits, repo, repoHistory, onBack, onSwitchRepo }: 
 
   return (
     <div ref={wrapperRef} className={wrapper}>
-      <CommitScene layout={layout} floorY={floorY} targetY={targetY} angle={angle} zoom={zoom} />
+      <CommitScene layout={layout} repo={repo} floorY={floorY} targetY={targetY} angle={angle} zoom={zoom} minY={minY} />
       <HUD
         repo={repo}
         commits={commits}

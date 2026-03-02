@@ -20,12 +20,17 @@ interface CommitBlockProps {
   commit: CommitData;
   position: [number, number, number];
   height: number;
-  isNew?: boolean;
+  /** Wall-clock timestamp (ms) when this commit first appeared. Drives entry animation + glow. */
+  newSince?: number;
+  commitUrl?: string;
 }
 
 const ENTRY_Y_OFFSET = 16; // units above final position
 const SPRING_K = 0.16;     // spring stiffness — lower = slower, more floaty
 const SPRING_DAMP = 0.7;   // damping — slightly underdamped for gentle bounce
+
+const GLOW_DURATION_MS = 10 * 60 * 1000; // 10 minutes
+const GLOW_MAX_EXTRA = 1.97;             // added on top of base emissiveIntensity at t=0
 
 // Regular octagon: all 8 sides = OCT_SIDE
 const OCT_SIDE = 3;
@@ -692,29 +697,64 @@ function FaceContent({
   );
 }
 
-export function CommitBlock({ commit, position, height, isNew = false }: CommitBlockProps) {
+export function CommitBlock({ commit, position, height, newSince, commitUrl }: CommitBlockProps) {
   const meshRef = useRef<THREE.Mesh>(null);
+  const mainMatRef = useRef<THREE.MeshStandardMaterial>(null);
   const groupRef = useRef<THREE.Group>(null);
-  const yOffsetRef = useRef(isNew ? ENTRY_Y_OFFSET : 0);
+  const yOffsetRef = useRef(newSince !== undefined ? ENTRY_Y_OFFSET : 0);
   const yVelocityRef = useRef(0);
   const [hovered, setHovered] = useState(false);
+  const hoveredRef = useRef(false);
+  const glowDoneRef = useRef(!newSince);
+
+  useEffect(() => { hoveredRef.current = hovered; }, [hovered]);
+
+  // For settled non-glowing blocks, keep hover emissive in sync via effect
+  // (useFrame returns early for those, so JSX can't drive it)
+  useEffect(() => {
+    if (glowDoneRef.current && mainMatRef.current) {
+      mainMatRef.current.emissiveIntensity = hovered ? 0.15 : 0.03;
+    }
+  }, [hovered]);
 
   const { invalidate } = useThree();
 
   useFrame((_, delta) => {
-    if (yOffsetRef.current === 0 && yVelocityRef.current === 0) return;
-    const dt = Math.min(delta, 0.05);
-    const springForce = -SPRING_K * yOffsetRef.current;
-    const dampForce = -SPRING_DAMP * yVelocityRef.current;
-    yVelocityRef.current += (springForce + dampForce) * dt;
-    yOffsetRef.current += yVelocityRef.current * dt;
-    if (Math.abs(yOffsetRef.current) < 0.001 && Math.abs(yVelocityRef.current) < 0.001) {
-      yOffsetRef.current = 0;
-      yVelocityRef.current = 0;
+    const isAnimating = yOffsetRef.current !== 0 || yVelocityRef.current !== 0;
+    const isGlowing = !glowDoneRef.current;
+
+    if (!isAnimating && !isGlowing) return;
+
+    // Spring-based Y entry animation
+    if (isAnimating) {
+      const dt = Math.min(delta, 0.05);
+      const springForce = -SPRING_K * yOffsetRef.current;
+      const dampForce = -SPRING_DAMP * yVelocityRef.current;
+      yVelocityRef.current += (springForce + dampForce) * dt;
+      yOffsetRef.current += yVelocityRef.current * dt;
+      if (Math.abs(yOffsetRef.current) < 0.001 && Math.abs(yVelocityRef.current) < 0.001) {
+        yOffsetRef.current = 0;
+        yVelocityRef.current = 0;
+      }
+      if (groupRef.current) {
+        groupRef.current.position.y = position[1] + yOffsetRef.current;
+      }
     }
-    if (groupRef.current) {
-      groupRef.current.position.y = position[1] + yOffsetRef.current;
+
+    // Glow decay: emissiveIntensity fades from (base + GLOW_MAX_EXTRA) → base over 10 min,
+    // decreasing linearly each minute. Drives the existing bloom above its luminance threshold.
+    if (isGlowing && mainMatRef.current && newSince !== undefined) {
+      const age = Date.now() - newSince;
+      if (age >= GLOW_DURATION_MS) {
+        glowDoneRef.current = true;
+        mainMatRef.current.emissiveIntensity = hoveredRef.current ? 0.15 : 0.03;
+      } else {
+        const t = 1 - age / GLOW_DURATION_MS; // 1 → 0 over 10 minutes
+        const base = hoveredRef.current ? 0.15 : 0.03;
+        mainMatRef.current.emissiveIntensity = base + t * GLOW_MAX_EXTRA;
+      }
     }
+
     invalidate();
   });
   const color = authorColorHex(commit.authorLogin);
@@ -770,6 +810,10 @@ export function CommitBlock({ commit, position, height, isNew = false }: CommitB
   // Face position helper: face center at apothem distance along normal
   const faceD = OCT_APOTHEM + 0.01;
 
+  // Track pointer-down position to distinguish clicks from drags
+  const pointerDownPos = useRef<{ x: number; y: number } | null>(null);
+  const CLICK_THRESHOLD = 5; // pixels
+
   return (
     <group
       ref={groupRef}
@@ -781,18 +825,37 @@ export function CommitBlock({ commit, position, height, isNew = false }: CommitB
         onPointerOver={(e) => {
           e.stopPropagation();
           setHovered(true);
+          if (commitUrl) document.body.style.cursor = "pointer";
         }}
-        onPointerOut={() => setHovered(false)}
+        onPointerOut={() => {
+          setHovered(false);
+          document.body.style.cursor = "";
+        }}
+        onPointerDown={(e) => {
+          pointerDownPos.current = { x: e.clientX, y: e.clientY };
+        }}
+        onClick={(e) => {
+          if (commitUrl && pointerDownPos.current) {
+            const dx = e.clientX - pointerDownPos.current.x;
+            const dy = e.clientY - pointerDownPos.current.y;
+            if (Math.sqrt(dx * dx + dy * dy) < CLICK_THRESHOLD) {
+              e.stopPropagation();
+              window.open(commitUrl, "_blank", "noopener");
+            }
+          }
+          pointerDownPos.current = null;
+        }}
         castShadow
         receiveShadow
       >
         <primitive object={octGeo} attach="geometry" />
         <meshStandardMaterial
+          ref={mainMatRef}
           color={darkenHex(color, 0.55)}
           metalness={0.3}
           roughness={0.6}
           emissive={color}
-          emissiveIntensity={hovered ? 0.15 : 0.03}
+          emissiveIntensity={newSince !== undefined ? GLOW_MAX_EXTRA + 0.03 : (hovered ? 0.15 : 0.03)}
         />
       </mesh>
 

@@ -3,6 +3,7 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { scene } from "../../lib/palette";
 import type { BlockLayout } from "../../lib/tower";
+import type { RepoInfo } from "../../types";
 import { TowerGroup } from "./TowerGroup";
 import { SceneLighting } from "./SceneLighting";
 import { SceneEffects } from "./SceneEffects";
@@ -14,22 +15,29 @@ const MAX_DISTANCE = 25;
 
 interface CommitSceneProps {
   layout: BlockLayout[];
+  repo: RepoInfo;
   floorY: number;
   targetY: number;
   angle: number;
   zoom: number;
+  minY: number;
 }
 
-function CameraController({ targetY, angle, zoom }: { targetY: number; angle: number; zoom: number }) {
+function CameraController({ targetY, angle, zoom, minY }: { targetY: number; angle: number; zoom: number; minY: number }) {
   const { camera, invalidate } = useThree();
   const targetRef = useRef(targetY);
   const angleRef = useRef(angle);
   const zoomRef = useRef(zoom);
   const currentAngle = useRef(angle);
 
-  useEffect(() => { targetRef.current = targetY; invalidate(); }, [targetY, invalidate]);
-  useEffect(() => { angleRef.current = angle; invalidate(); }, [angle, invalidate]);
-  useEffect(() => { zoomRef.current = zoom; invalidate(); }, [zoom, invalidate]);
+  // Mutate refs during render — idiomatic R3F, ensures useFrame always has latest
+  // values without a useEffect delay causing stale-closure frames.
+  targetRef.current = targetY;
+  angleRef.current = angle;
+  zoomRef.current = zoom;
+
+  // Track previous minY to detect layout re-centering shifts.
+  const prevMinYRef = useRef(minY);
 
   // Set initial position on mount
   useEffect(() => {
@@ -47,6 +55,16 @@ function CameraController({ targetY, angle, zoom }: { targetY: number; angle: nu
   useFrame(() => {
     const cam = camera as THREE.PerspectiveCamera;
     let moving = false;
+
+    // When the tower re-centers (new commit added → all block Y positions shift),
+    // immediately move the camera by the same delta BEFORE Three.js renders this
+    // frame. Blocks and camera shift together — zero visible jump.
+    const minYShift = minY - prevMinYRef.current;
+    if (Math.abs(minYShift) > 0.001) {
+      cam.position.y += minYShift;
+      prevMinYRef.current = minY;
+      moving = true;
+    }
 
     // Smooth Y interpolation
     const diffY = targetRef.current - cam.position.y;
@@ -90,7 +108,7 @@ function CameraController({ targetY, angle, zoom }: { targetY: number; angle: nu
   return null;
 }
 
-export function CommitScene({ layout, floorY, targetY, angle, zoom }: CommitSceneProps) {
+export function CommitScene({ layout, repo, floorY, targetY, angle, zoom, minY }: CommitSceneProps) {
   return (
     <Canvas
       shadows
@@ -103,11 +121,11 @@ export function CommitScene({ layout, floorY, targetY, angle, zoom }: CommitScen
       <fog attach="fog" args={[scene.fog, 8, 35]} />
 
       <SceneLighting />
-      <TowerGroup layout={layout} />
+      <TowerGroup layout={layout} repo={repo} />
       <Floor yPosition={floorY} />
 <SceneEffects />
 
-      <CameraController targetY={targetY} angle={angle} zoom={zoom} />
+      <CameraController targetY={targetY} angle={angle} zoom={zoom} minY={minY} />
     </Canvas>
   );
 }
