@@ -7,7 +7,6 @@ import { TowerGroup } from "./TowerGroup";
 import { SceneLighting } from "./SceneLighting";
 import { SceneEffects } from "./SceneEffects";
 import { Floor } from "./Floor";
-import { Particles } from "./Particles";
 
 const INITIAL_DISTANCE = 10;
 const MIN_DISTANCE = 3;
@@ -93,8 +92,7 @@ export function CommitScene({ layout, floorY, targetY, angle, zoom }: CommitScen
       <SceneLighting />
       <TowerGroup layout={layout} />
       <Floor yPosition={floorY} />
-      <Particles targetY={targetY} />
-      <SceneEffects />
+<SceneEffects />
 
       <CameraController targetY={targetY} angle={angle} zoom={zoom} />
     </Canvas>
