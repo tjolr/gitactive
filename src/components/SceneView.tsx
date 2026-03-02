@@ -98,6 +98,9 @@ export function SceneView({ commits, repo, repoHistory, onBack, onSwitchRepo }: 
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault();
       setTargetY((y) => Math.max(minY, Math.min(maxY, y - e.deltaY * SCROLL_SPEED)));
+      if (e.deltaX !== 0) {
+        setAngle((a) => a - e.deltaX * DRAG_ROTATE_SPEED);
+      }
     };
 
     el.addEventListener("wheel", handleWheel, { passive: false });
