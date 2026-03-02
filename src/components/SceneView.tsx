@@ -14,6 +14,7 @@ interface SceneViewProps {
 const SCROLL_SPEED = 0.01; // world units per pixel of wheel delta
 const SCROLL_STEP_Y = 3; // world units per HUD button click
 const ROTATE_STEP = Math.PI / 16; // radians per button click / key press
+const DRAG_ROTATE_SPEED = 0.005; // radians per pixel of mouse drag
 
 export function SceneView({ commits, repo, onBack }: SceneViewProps) {
   const layout = useMemo(() => computeTowerLayout(commits), [commits]);
@@ -50,6 +51,42 @@ export function SceneView({ commits, repo, onBack }: SceneViewProps) {
   const zoomOut = useCallback(() => setZoom((z) => Math.max(z / 1.3, 0.4)), []);
 
   const wrapperRef = useRef<HTMLDivElement>(null);
+
+  // Mouse drag for horizontal rotation
+  const isDragging = useRef(false);
+  const lastMouseX = useRef(0);
+
+  useEffect(() => {
+    const el = wrapperRef.current;
+    if (!el) return;
+
+    const handleMouseDown = (e: MouseEvent) => {
+      isDragging.current = true;
+      lastMouseX.current = e.clientX;
+      el.style.cursor = "grabbing";
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging.current) return;
+      const dx = e.clientX - lastMouseX.current;
+      lastMouseX.current = e.clientX;
+      setAngle((a) => a + dx * DRAG_ROTATE_SPEED);
+    };
+
+    const handleMouseUp = () => {
+      isDragging.current = false;
+      el.style.cursor = "";
+    };
+
+    el.addEventListener("mousedown", handleMouseDown);
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      el.removeEventListener("mousedown", handleMouseDown);
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, []);
 
   // Wheel scroll for vertical movement
   useEffect(() => {
