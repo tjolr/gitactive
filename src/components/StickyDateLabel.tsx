@@ -1,9 +1,61 @@
-import { useState, useEffect, useRef } from "react";
-import { neutral } from "../lib/palette";
+import { useState, useEffect, useRef, memo } from "react";
+import { Html } from "@react-three/drei";
+import { useFrame, useThree } from "@react-three/fiber";
+import * as THREE from "three";
+import { BLOCK_WIDTH } from "./scene/CommitBlock";
+import { neutral, scene } from "../lib/palette";
+import type { BlockLayout } from "../lib/tower";
 
 type Phase = "idle" | "exit" | "enter";
 
-export function StickyDateLabel({ date }: { date: string }) {
+interface StickyDateLabelProps {
+  layout: BlockLayout[];
+  targetY: number;
+}
+
+export function StickyDateLabel({ layout, targetY }: StickyDateLabelProps) {
+  const groupRef = useRef<THREE.Group>(null);
+  const { camera } = useThree();
+  const layoutRef = useRef(layout);
+  const targetYRef = useRef(targetY);
+  layoutRef.current = layout;
+  targetYRef.current = targetY;
+
+  const [currentDate, setCurrentDate] = useState<string | null>(() => {
+    return computeDate(layout, targetY);
+  });
+
+  useFrame(() => {
+    // Update group Y to follow camera — purely imperative, no React re-render
+    if (groupRef.current) {
+      groupRef.current.position.y = camera.position.y;
+    }
+
+    // Derive date from targetY; only setState when it actually changes
+    const date = computeDate(layoutRef.current, targetYRef.current);
+    setCurrentDate((prev) => (prev === date ? prev : date));
+  });
+
+  if (!currentDate) return null;
+
+  return (
+    <group ref={groupRef} position={[-(BLOCK_WIDTH / 2 + 3), camera.position.y, 0]}>
+      <Html distanceFactor={10} style={{ pointerEvents: "none" }}>
+        <DateLabelInner date={currentDate} />
+      </Html>
+    </group>
+  );
+}
+
+function computeDate(layout: BlockLayout[], targetY: number): string | null {
+  let label = layout[0]?.dateLabel ?? layout[0]?.commit.date;
+  for (const block of layout) {
+    if (block.y <= targetY && block.dateLabel) label = block.dateLabel;
+  }
+  return label ?? null;
+}
+
+const DateLabelInner = memo(function DateLabelInner({ date }: { date: string }) {
   const [displayed, setDisplayed] = useState(date);
   const [phase, setPhase] = useState<Phase>("idle");
   const prevDate = useRef(date);
@@ -12,16 +64,12 @@ export function StickyDateLabel({ date }: { date: string }) {
     if (date === prevDate.current) return;
     prevDate.current = date;
 
-    // Phase 1: slide current text up + fade out
     setPhase("exit");
 
     const exitTimer = setTimeout(() => {
-      // Swap to new text
       setDisplayed(date);
       setPhase("enter");
 
-      // Need a rAF so the browser paints the initial "enter" position
-      // before we transition to final position
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           setPhase("idle");
@@ -54,22 +102,17 @@ export function StickyDateLabel({ date }: { date: string }) {
       </div>
     </div>
   );
-}
+});
 
 const containerStyle: React.CSSProperties = {
-  position: "absolute",
-  top: "56px",
-  left: "16px",
-  pointerEvents: "none",
+  whiteSpace: "nowrap",
   fontFamily: "'SF Mono', monospace",
-  fontSize: "18px",
+  fontSize: "28px",
   fontWeight: 600,
-  color: neutral[300],
-  background: "rgba(10,10,15,0.7)",
-  backdropFilter: "blur(10px)",
-  border: "1px solid #2a2a3a",
+  color: neutral[400],
+  background: `${scene.background}b3`,
+  padding: "3px 8px",
+  borderRadius: "4px",
   borderLeft: "2px solid #555577",
-  padding: "4px 12px",
-  borderRadius: "6px",
   overflow: "hidden",
 };

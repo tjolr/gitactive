@@ -5,6 +5,7 @@ import { scene } from "../../lib/palette";
 import type { BlockLayout } from "../../lib/tower";
 import type { RepoInfo } from "../../types";
 import { TowerGroup } from "./TowerGroup";
+import { StickyDateLabel } from "../StickyDateLabel";
 import { SceneLighting } from "./SceneLighting";
 import { SceneEffects } from "./SceneEffects";
 import { Floor } from "./Floor";
@@ -123,6 +124,7 @@ export function CommitScene({ layout, repo, floorY, targetY, angle, zoom, minY }
         <TowerGroup layout={layout} repo={repo} />
         <Floor yPosition={floorY} />
       </TowerRotator>
+      <StickyDateLabel layout={layout} targetY={targetY} />
       <SceneEffects />
 
       <CameraController targetY={targetY} zoom={zoom} minY={minY} />

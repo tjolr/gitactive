@@ -4,7 +4,6 @@ import type { CommitData, RepoInfo } from "../types";
 import { computeTowerLayout, computeFloorY } from "../lib/tower";
 import { CommitScene } from "./scene/CommitScene";
 import { HUD } from "./HUD";
-import { StickyDateLabel } from "./StickyDateLabel";
 
 interface SceneViewProps {
   commits: CommitData[];
@@ -63,14 +62,6 @@ export function SceneView({ commits, repo, repoHistory, onBack, onSwitchRepo }: 
   const [zoom, setZoom] = useState(1);
   const zoomIn = useCallback(() => setZoom((z) => Math.min(z * 1.3, 3)), []);
   const zoomOut = useCallback(() => setZoom((z) => Math.max(z / 1.3, 0.4)), []);
-
-  const currentDate = useMemo(() => {
-    let label = layout[0]?.dateLabel ?? layout[0]?.commit.date;
-    for (const block of layout) {
-      if (block.y <= targetY && block.dateLabel) label = block.dateLabel;
-    }
-    return label ?? null;
-  }, [layout, targetY]);
 
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -157,7 +148,6 @@ export function SceneView({ commits, repo, repoHistory, onBack, onSwitchRepo }: 
   return (
     <div ref={wrapperRef} className={wrapper}>
       <CommitScene layout={layout} repo={repo} floorY={floorY} targetY={targetY} angle={angle} zoom={zoom} minY={minY} />
-      {currentDate && <StickyDateLabel date={currentDate} />}
       <HUD
         repo={repo}
         commits={commits}
