@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import type { CommitData, RepoInfo } from "./types";
 import { LandingPage } from "./components/LandingPage";
 import { SceneView } from "./components/SceneView";
+import { DevMenu } from "./components/DevMenu";
 import { parseRepoUrl, fetchCommits, fetchCommitsSince } from "./lib/github";
 import { resetAuthorColors } from "./lib/colors";
 import { neutral, scene } from "./lib/palette";
@@ -97,19 +98,22 @@ function App() {
 
   if (commits && repo) {
     return (
-      <SceneView
-        commits={commits}
-        repo={repo}
-        repoHistory={repoHistory}
-        onBack={() => {
-          resetAuthorColors();
-          setCommits(null);
-          setRepo(null);
-        }}
-        onSwitchRepo={(url) => {
-          loadRepo(url).catch(() => {});
-        }}
-      />
+      <>
+        <SceneView
+          commits={commits}
+          repo={repo}
+          repoHistory={repoHistory}
+          onBack={() => {
+            resetAuthorColors();
+            setCommits(null);
+            setRepo(null);
+          }}
+          onSwitchRepo={(url) => {
+            loadRepo(url).catch(() => {});
+          }}
+        />
+        <DevMenu onAddCommit={(c) => setCommits((prev) => prev ? [...prev, c] : [c])} />
+      </>
     );
   }
 

@@ -11,10 +11,7 @@ import {
 } from "../../lib/colors";
 import { extColors, neutral, scene, stat, white } from "../../lib/palette";
 import type { CommitData } from "../../types";
-import {
-  EXT_TO_LOGO,
-  SmallLogoIcon,
-} from "./TechLogoMedallion";
+import { EXT_TO_LOGO, SmallLogoIcon } from "./TechLogoMedallion";
 
 interface CommitBlockProps {
   commit: CommitData;
@@ -26,8 +23,8 @@ interface CommitBlockProps {
 }
 
 const ENTRY_Y_OFFSET = 16; // units above final position
-const SPRING_K = 0.16;     // spring stiffness — lower = slower, more floaty
-const SPRING_DAMP = 0.7;   // damping — slightly underdamped for gentle bounce
+const SPRING_K = 0.16; // spring stiffness — lower = slower, more floaty
+const SPRING_DAMP = 0.7; // damping — slightly underdamped for gentle bounce
 
 const GLOW_DURATION_MS = 10 * 60 * 1000; // 10 minutes
 
@@ -267,12 +264,21 @@ function FileListFace({
     const statsStr = parts.join(" ");
     // Reserve space for stats + gap (3 char gap between name and stats)
     const statsChars = statsStr.length > 0 ? statsStr.length + 3 : 0;
-    const nameMax = Math.min(50, Math.max(6, Math.floor(maxW / cwSmall) - statsChars));
+    const nameMax = Math.min(
+      50,
+      Math.max(6, Math.floor(maxW / cwSmall) - statsChars),
+    );
     let name = f.filename;
     if (name.length > nameMax) {
       name = ".." + name.slice(name.length - nameMax + 2);
     }
-    return { name, statsStr, additions: f.additions, deletions: f.deletions, nameMax };
+    return {
+      name,
+      statsStr,
+      additions: f.additions,
+      deletions: f.deletions,
+      nameMax,
+    };
   });
 
   const topY = usable / 2 - STATS_SMALL * 0.5;
@@ -288,9 +294,7 @@ function FileListFace({
 
         const addStr = entry.additions > 0 ? `+${entry.additions}` : "";
         const delStr = entry.deletions > 0 ? `-${entry.deletions}` : "";
-        const delX = addStr
-          ? statsX + (addStr.length + 1) * cwSmall
-          : statsX;
+        const delX = addStr ? statsX + (addStr.length + 1) * cwSmall : statsX;
 
         return (
           <group key={i} position={[0, y, 0]}>
@@ -696,7 +700,13 @@ function FaceContent({
   );
 }
 
-export function CommitBlock({ commit, position, height, newSince, commitUrl }: CommitBlockProps) {
+export function CommitBlock({
+  commit,
+  position,
+  height,
+  newSince,
+  commitUrl,
+}: CommitBlockProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const glowMatRef = useRef<THREE.MeshBasicMaterial>(null);
   const groupRef = useRef<THREE.Group>(null);
@@ -707,7 +717,8 @@ export function CommitBlock({ commit, position, height, newSince, commitUrl }: C
   const { invalidate } = useThree();
 
   useFrame((_, delta) => {
-    const glowAge = newSince !== undefined ? Date.now() - newSince : GLOW_DURATION_MS;
+    const glowAge =
+      newSince !== undefined ? Date.now() - newSince : GLOW_DURATION_MS;
     const isAnimating = yOffsetRef.current !== 0 || yVelocityRef.current !== 0;
     const isGlowing = glowAge < GLOW_DURATION_MS;
 
@@ -720,7 +731,10 @@ export function CommitBlock({ commit, position, height, newSince, commitUrl }: C
       const dampForce = -SPRING_DAMP * yVelocityRef.current;
       yVelocityRef.current += (springForce + dampForce) * dt;
       yOffsetRef.current += yVelocityRef.current * dt;
-      if (Math.abs(yOffsetRef.current) < 0.001 && Math.abs(yVelocityRef.current) < 0.001) {
+      if (
+        Math.abs(yOffsetRef.current) < 0.001 &&
+        Math.abs(yVelocityRef.current) < 0.001
+      ) {
         yOffsetRef.current = 0;
         yVelocityRef.current = 0;
       }
@@ -737,14 +751,16 @@ export function CommitBlock({ commit, position, height, newSince, commitUrl }: C
       } else {
         const t = 1 - glowAge / GLOW_DURATION_MS; // 1 → 0
         const now = Date.now();
-        const flicker = 0.85 + 0.15 * Math.sin(now * 0.007) * Math.sin(now * 0.0031);
+        const flicker =
+          0.85 + 0.15 * Math.sin(now * 0.007) * Math.sin(now * 0.0031);
         const intensity = t * flicker;
         // Fire palette: white-yellow when fresh, deep orange as it ages
-        const r = intensity * 3.0;
-        const g = intensity * (0.4 + 1.2 * t);  // more yellow when t is high (fresh)
-        const b = intensity * 0.15 * t;           // tiny blue tint only when white-hot
+        // High HDR values so bloom spreads the glow far from the block
+        const r = intensity * 8.0;
+        const g = intensity * (1.0 + 3.0 * t); // more yellow when t is high (fresh)
+        const b = intensity * 0.4 * t; // tiny blue tint only when white-hot
         glowMatRef.current.color.setRGB(r, g, b);
-        glowMatRef.current.opacity = Math.min(0.9, intensity * 1.8);
+        glowMatRef.current.opacity = Math.min(1.0, intensity * 2.5);
         glowMatRef.current.visible = true;
       }
     }
@@ -910,7 +926,7 @@ export function CommitBlock({ commit, position, height, newSince, commitUrl }: C
           fringe beyond the block's silhouette (depth-tested away where it overlaps).
           HDR fire colors drive the existing bloom into a recency glow. */}
       {newSince !== undefined && (
-        <group scale={[1.12, 1.04, 1.12]}>
+        <group scale={[1.005, 1.005, 1.005]}>
           <mesh renderOrder={2}>
             <primitive object={octGeo} attach="geometry" />
             <meshBasicMaterial
@@ -920,6 +936,7 @@ export function CommitBlock({ commit, position, height, newSince, commitUrl }: C
               opacity={0.8}
               toneMapped={false}
               depthWrite={false}
+              side={THREE.BackSide}
             />
           </mesh>
         </group>

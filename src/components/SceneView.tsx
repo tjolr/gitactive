@@ -38,7 +38,7 @@ export function SceneView({ commits, repo, repoHistory, onBack, onSwitchRepo }: 
       setTargetY((y) => y + delta);
     }
   }, [layout]); // layout as dep so this fires exactly when re-centering happens
-  const [angle, setAngle] = useState(Math.PI / 4); // horizontal orbit angle (radians)
+  const [angle, setAngle] = useState(0); // horizontal orbit angle (radians)
 
   const clampY = useCallback(
     (y: number) => Math.max(minY, Math.min(maxY, y)),
