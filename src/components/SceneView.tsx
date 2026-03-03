@@ -4,6 +4,7 @@ import type { CommitData, RepoInfo } from "../types";
 import { computeTowerLayout, computeFloorY } from "../lib/tower";
 import { CommitScene } from "./scene/CommitScene";
 import { HUD } from "./HUD";
+import { StickyDateLabel } from "./StickyDateLabel";
 
 interface SceneViewProps {
   commits: CommitData[];
@@ -14,7 +15,7 @@ interface SceneViewProps {
 }
 
 const SCROLL_SPEED = 0.01; // world units per pixel of wheel delta
-const SCROLL_STEP_Y = 3; // world units per HUD button click
+const SCROLL_STEP_Y = 1.5; // world units per HUD button click
 const ROTATE_STEP = Math.PI / 16; // radians per button click / key press
 const DRAG_ROTATE_SPEED = 0.005; // radians per pixel of mouse drag
 
@@ -56,12 +57,20 @@ export function SceneView({ commits, repo, repoHistory, onBack, onSwitchRepo }: 
     setTargetY((y) => clampY(y + SCROLL_STEP_Y));
   }, [clampY]);
 
-  const rotateLeft = useCallback(() => setAngle((a) => a + ROTATE_STEP), []);
-  const rotateRight = useCallback(() => setAngle((a) => a - ROTATE_STEP), []);
+  const rotateLeft = useCallback(() => setAngle((a) => a - ROTATE_STEP), []);
+  const rotateRight = useCallback(() => setAngle((a) => a + ROTATE_STEP), []);
 
   const [zoom, setZoom] = useState(1);
   const zoomIn = useCallback(() => setZoom((z) => Math.min(z * 1.3, 3)), []);
   const zoomOut = useCallback(() => setZoom((z) => Math.max(z / 1.3, 0.4)), []);
+
+  const currentDate = useMemo(() => {
+    let label = layout[0]?.dateLabel ?? layout[0]?.commit.date;
+    for (const block of layout) {
+      if (block.y <= targetY && block.dateLabel) label = block.dateLabel;
+    }
+    return label ?? null;
+  }, [layout, targetY]);
 
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -132,11 +141,11 @@ export function SceneView({ commits, repo, repoHistory, onBack, onSwitchRepo }: 
           break;
         case "ArrowLeft":
           e.preventDefault();
-          setAngle((a) => a + ROTATE_STEP);
+          setAngle((a) => a - ROTATE_STEP);
           break;
         case "ArrowRight":
           e.preventDefault();
-          setAngle((a) => a - ROTATE_STEP);
+          setAngle((a) => a + ROTATE_STEP);
           break;
       }
     };
@@ -148,6 +157,7 @@ export function SceneView({ commits, repo, repoHistory, onBack, onSwitchRepo }: 
   return (
     <div ref={wrapperRef} className={wrapper}>
       <CommitScene layout={layout} repo={repo} floorY={floorY} targetY={targetY} angle={angle} zoom={zoom} minY={minY} />
+      {currentDate && <StickyDateLabel date={currentDate} />}
       <HUD
         repo={repo}
         commits={commits}

@@ -1,7 +1,4 @@
-import { Html } from "@react-three/drei";
 import { useEffect, useRef } from "react";
-import { BLOCK_WIDTH } from "./CommitBlock";
-import { neutral, scene } from "../../lib/palette";
 import type { BlockLayout } from "../../lib/tower";
 import type { RepoInfo } from "../../types";
 import { CommitBlock } from "./CommitBlock";
@@ -45,31 +42,9 @@ export function TowerGroup({ layout, repo }: TowerGroupProps) {
             newSince={newSinceTimes.current.get(block.commit.sha)}
             commitUrl={`https://github.com/${repo.owner}/${repo.repo}/commit/${block.commit.sha}`}
           />
-          {block.dateLabel && (
-            <Html
-              position={[-(BLOCK_WIDTH / 2 + 0.6), block.y, 0]}
-              distanceFactor={8}
-              style={{ pointerEvents: "none" }}
-            >
-              <div
-                style={{
-                  whiteSpace: "nowrap",
-                  fontFamily: "'SF Mono', monospace",
-                  fontSize: "15px",
-                  fontWeight: 600,
-                  color: neutral[400],
-                  background: `${scene.background}b3`,
-                  padding: "3px 8px",
-                  borderRadius: "4px",
-                  borderLeft: "2px solid #555577",
-                }}
-              >
-                {block.dateLabel}
-              </div>
-            </Html>
-          )}
         </group>
       ))}
     </group>
   );
 }
+
