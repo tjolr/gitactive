@@ -17,6 +17,9 @@ const LOGO_URLS: Record<TechLanguage, string> = {
   sql: "/logos/sql.svg",
   prisma: "/logos/prisma.svg",
   json: "/logos/json.svg",
+  markdown: "/logos/markdown.svg",
+  html: "/logos/html.svg",
+  png: "/logos/png.svg",
 };
 
 // Map file extensions to available logos
@@ -30,6 +33,11 @@ export const EXT_TO_LOGO: Record<string, TechLanguage> = {
   sql: "sql",
   prisma: "prisma",
   json: "json",
+  md: "markdown",
+  mdx: "markdown",
+  html: "html",
+  htm: "html",
+  png: "png",
 };
 
 // Module-level texture cache — each logo loaded only once

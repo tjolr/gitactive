@@ -887,11 +887,6 @@ export function CommitBlock({
         <FaceContent {...faceProps} />
       </group>
 
-      {/* Face 4: Back (-Z) — commit info */}
-      <group position={[0, 0, -faceD]} rotation={[0, Math.PI, 0]}>
-        <FaceContent {...faceProps} />
-      </group>
-
       {/* Face 1: Front-right — file stats */}
       <group
         position={[
