@@ -25,7 +25,7 @@ interface CommitBlockProps {
 
 const ENTRY_Y_OFFSET = 16; // units above final position
 const SPRING_K = 0.16; // spring stiffness — lower = slower, more floaty
-const SPRING_DAMP = 0.7; // damping — slightly underdamped for gentle bounce
+const SPRING_DAMP = 1.2; // damping — overdamped, no bounce
 
 const GLOW_DURATION_MS = 10 * 60 * 1000; // 10 minutes
 
