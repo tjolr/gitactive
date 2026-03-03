@@ -267,9 +267,9 @@ export const stat = {
 } as const;
 
 export const time = {
-  fresh: { hex: 0x44ff44, css: "#44ff44" }, // < 1h
-  recent: { hex: 0xffa500, css: "#ffa500" }, // 1-2h
-  stale: { hex: 0x8b5e3c, css: "#8b5e3c" }, // > 2h
+  fresh: { hex: 0x44ff44, css: "#44ff44" }, // < 1h — green
+  recent: { hex: 0xfce588, css: "#fce588" }, // 1-2h — yellow
+  stale: { hex: 0xffa500, css: "#ffa500" }, // > 2h — orange
 } as const;
 
 // ── File-extension brand colors ─────────────────────────────────────

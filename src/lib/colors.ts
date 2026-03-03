@@ -41,12 +41,18 @@ export function ageColor(dateStr: string): { hex: number; css: string } {
   return { hex, css };
 }
 
-/** Color for the relative-time text: green < 1h, orange 1–2h, brown > 2h */
+/** Color for the relative-time text: green < 1h, yellow 1–2h, orange > 2h */
 export function timeAgoColor(dateStr: string): { hex: number; css: string } {
   const mins = Math.max(0, (Date.now() - new Date(dateStr).getTime()) / 60_000);
   if (mins < 60) return time.fresh;
   if (mins < 120) return time.recent;
   return time.stale;
+}
+
+/** Check if time should have glow effect (< 10 minutes) */
+export function timeHasGlow(dateStr: string): boolean {
+  const mins = Math.max(0, (Date.now() - new Date(dateStr).getTime()) / 60_000);
+  return mins < 10;
 }
 
 /** Compact relative time: 14m ago, 2h ago, 1d ago, 3mo ago, 1y ago */

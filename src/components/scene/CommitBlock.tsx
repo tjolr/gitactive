@@ -8,6 +8,7 @@ import {
   darkenHex,
   timeAgo,
   timeAgoColor,
+  timeHasGlow,
 } from "../../lib/colors";
 import { extColors, neutral, scene, stat, white } from "../../lib/palette";
 import type { CommitData } from "../../types";
@@ -625,6 +626,7 @@ function FaceContent({
   textDepth,
   relTime,
   timeColor,
+  timeHasGlowEffect,
 }: {
   commit: CommitData;
   lines: string[];
@@ -632,6 +634,7 @@ function FaceContent({
   textDepth: number;
   relTime: string;
   timeColor: number;
+  timeHasGlowEffect: boolean;
 }) {
   // Vertically center the content block (avatar + text lines)
   const totalTextHeight = lines.length * LINE_HEIGHT;
@@ -691,7 +694,7 @@ function FaceContent({
               metalness={0.1}
               roughness={0.5}
               emissive={timeColor}
-              emissiveIntensity={0.15}
+              emissiveIntensity={timeHasGlowEffect ? 0.7 : 0.15}
             />
           </Text3D>
         </Center>
@@ -773,6 +776,10 @@ export function CommitBlock({
     () => timeAgoColor(commit.date),
     [commit.date],
   );
+  const timeHasGlowEffect = useMemo(
+    () => timeHasGlow(commit.date),
+    [commit.date],
+  );
   const textDepth = 0;
 
   // Max lines based on block height
@@ -795,6 +802,7 @@ export function CommitBlock({
     textDepth,
     relTime,
     timeColor,
+    timeHasGlowEffect,
   };
 
   // Octagonal prism geometry (XZ cross-section, extruded along Y)
