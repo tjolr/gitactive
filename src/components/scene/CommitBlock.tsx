@@ -30,7 +30,6 @@ const SPRING_K = 0.16;     // spring stiffness — lower = slower, more floaty
 const SPRING_DAMP = 0.7;   // damping — slightly underdamped for gentle bounce
 
 const GLOW_DURATION_MS = 10 * 60 * 1000; // 10 minutes
-const GLOW_MAX_EXTRA = 1.97;             // added on top of base emissiveIntensity at t=0
 
 // Regular octagon: all 8 sides = OCT_SIDE
 const OCT_SIDE = 3;
@@ -699,29 +698,18 @@ function FaceContent({
 
 export function CommitBlock({ commit, position, height, newSince, commitUrl }: CommitBlockProps) {
   const meshRef = useRef<THREE.Mesh>(null);
-  const mainMatRef = useRef<THREE.MeshStandardMaterial>(null);
+  const glowMatRef = useRef<THREE.MeshBasicMaterial>(null);
   const groupRef = useRef<THREE.Group>(null);
   const yOffsetRef = useRef(newSince !== undefined ? ENTRY_Y_OFFSET : 0);
   const yVelocityRef = useRef(0);
   const [hovered, setHovered] = useState(false);
-  const hoveredRef = useRef(false);
-  const glowDoneRef = useRef(!newSince);
-
-  useEffect(() => { hoveredRef.current = hovered; }, [hovered]);
-
-  // For settled non-glowing blocks, keep hover emissive in sync via effect
-  // (useFrame returns early for those, so JSX can't drive it)
-  useEffect(() => {
-    if (glowDoneRef.current && mainMatRef.current) {
-      mainMatRef.current.emissiveIntensity = hovered ? 0.15 : 0.03;
-    }
-  }, [hovered]);
 
   const { invalidate } = useThree();
 
   useFrame((_, delta) => {
+    const glowAge = newSince !== undefined ? Date.now() - newSince : GLOW_DURATION_MS;
     const isAnimating = yOffsetRef.current !== 0 || yVelocityRef.current !== 0;
-    const isGlowing = !glowDoneRef.current;
+    const isGlowing = glowAge < GLOW_DURATION_MS;
 
     if (!isAnimating && !isGlowing) return;
 
@@ -741,17 +729,23 @@ export function CommitBlock({ commit, position, height, newSince, commitUrl }: C
       }
     }
 
-    // Glow decay: emissiveIntensity fades from (base + GLOW_MAX_EXTRA) → base over 10 min,
-    // decreasing linearly each minute. Drives the existing bloom above its luminance threshold.
-    if (isGlowing && mainMatRef.current && newSince !== undefined) {
-      const age = Date.now() - newSince;
-      if (age >= GLOW_DURATION_MS) {
-        glowDoneRef.current = true;
-        mainMatRef.current.emissiveIntensity = hoveredRef.current ? 0.15 : 0.03;
+    // Outer fire glow: HDR fire colors fade from white-hot → orange → ember over 10 min.
+    // The outer mesh sits just beyond the block silhouette; bloom spreads it into an aura.
+    if (glowMatRef.current) {
+      if (!isGlowing) {
+        glowMatRef.current.visible = false;
       } else {
-        const t = 1 - age / GLOW_DURATION_MS; // 1 → 0 over 10 minutes
-        const base = hoveredRef.current ? 0.15 : 0.03;
-        mainMatRef.current.emissiveIntensity = base + t * GLOW_MAX_EXTRA;
+        const t = 1 - glowAge / GLOW_DURATION_MS; // 1 → 0
+        const now = Date.now();
+        const flicker = 0.85 + 0.15 * Math.sin(now * 0.007) * Math.sin(now * 0.0031);
+        const intensity = t * flicker;
+        // Fire palette: white-yellow when fresh, deep orange as it ages
+        const r = intensity * 3.0;
+        const g = intensity * (0.4 + 1.2 * t);  // more yellow when t is high (fresh)
+        const b = intensity * 0.15 * t;           // tiny blue tint only when white-hot
+        glowMatRef.current.color.setRGB(r, g, b);
+        glowMatRef.current.opacity = Math.min(0.9, intensity * 1.8);
+        glowMatRef.current.visible = true;
       }
     }
 
@@ -850,12 +844,11 @@ export function CommitBlock({ commit, position, height, newSince, commitUrl }: C
       >
         <primitive object={octGeo} attach="geometry" />
         <meshStandardMaterial
-          ref={mainMatRef}
           color={darkenHex(color, 0.55)}
           metalness={0.3}
           roughness={0.6}
           emissive={color}
-          emissiveIntensity={newSince !== undefined ? GLOW_MAX_EXTRA + 0.03 : (hovered ? 0.15 : 0.03)}
+          emissiveIntensity={hovered ? 0.15 : 0.03}
         />
       </mesh>
 
@@ -912,6 +905,25 @@ export function CommitBlock({ commit, position, height, newSince, commitUrl }: C
       )}
 
       {/* Faces 2,3,5,6: empty */}
+
+      {/* Fire aura — outer shell slightly wider than the block, rendered only as a
+          fringe beyond the block's silhouette (depth-tested away where it overlaps).
+          HDR fire colors drive the existing bloom into a recency glow. */}
+      {newSince !== undefined && (
+        <group scale={[1.12, 1.04, 1.12]}>
+          <mesh renderOrder={2}>
+            <primitive object={octGeo} attach="geometry" />
+            <meshBasicMaterial
+              ref={glowMatRef}
+              color="#ff8800"
+              transparent
+              opacity={0.8}
+              toneMapped={false}
+              depthWrite={false}
+            />
+          </mesh>
+        </group>
+      )}
 
       {/* Hover tooltip */}
       {hovered && (

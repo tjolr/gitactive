@@ -83,7 +83,7 @@ export function SceneView({ commits, repo, repoHistory, onBack, onSwitchRepo }: 
       if (!isDragging.current) return;
       const dx = e.clientX - lastMouseX.current;
       lastMouseX.current = e.clientX;
-      setAngle((a) => a + dx * DRAG_ROTATE_SPEED);
+      setAngle((a) => a - dx * DRAG_ROTATE_SPEED);
     };
 
     const handleMouseUp = () => {
@@ -110,7 +110,7 @@ export function SceneView({ commits, repo, repoHistory, onBack, onSwitchRepo }: 
       e.preventDefault();
       setTargetY((y) => Math.max(minY, Math.min(maxY, y - e.deltaY * SCROLL_SPEED)));
       if (e.deltaX !== 0) {
-        setAngle((a) => a - e.deltaX * DRAG_ROTATE_SPEED);
+        setAngle((a) => a + e.deltaX * DRAG_ROTATE_SPEED);
       }
     };
 

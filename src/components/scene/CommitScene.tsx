@@ -23,32 +23,20 @@ interface CommitSceneProps {
   minY: number;
 }
 
-function CameraController({ targetY, angle, zoom, minY }: { targetY: number; angle: number; zoom: number; minY: number }) {
+function CameraController({ targetY, zoom, minY }: { targetY: number; zoom: number; minY: number }) {
   const { camera, invalidate } = useThree();
   const targetRef = useRef(targetY);
-  const angleRef = useRef(angle);
   const zoomRef = useRef(zoom);
-  const currentAngle = useRef(angle);
 
-  // Mutate refs during render — idiomatic R3F, ensures useFrame always has latest
-  // values without a useEffect delay causing stale-closure frames.
   targetRef.current = targetY;
-  angleRef.current = angle;
   zoomRef.current = zoom;
 
-  // Track previous minY to detect layout re-centering shifts.
   const prevMinYRef = useRef(minY);
 
-  // Set initial position on mount
   useEffect(() => {
-    camera.position.set(
-      Math.cos(angle) * INITIAL_DISTANCE,
-      targetY,
-      Math.sin(angle) * INITIAL_DISTANCE
-    );
+    camera.position.set(0, targetY, INITIAL_DISTANCE);
     camera.lookAt(0, targetY, 0);
     invalidate();
-    // Only on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -73,33 +61,21 @@ function CameraController({ targetY, angle, zoom, minY }: { targetY: number; ang
       moving = true;
     }
 
-    // Smooth angle interpolation
-    const angleDiff = angleRef.current - currentAngle.current;
-    if (Math.abs(angleDiff) > 0.001) {
-      currentAngle.current += angleDiff * 0.08;
-      moving = true;
-    }
-
-    // Smooth zoom interpolation — compute desired distance
+    // Smooth zoom interpolation
     const desiredDist = THREE.MathUtils.clamp(
       INITIAL_DISTANCE / zoomRef.current,
       MIN_DISTANCE,
       MAX_DISTANCE
     );
-    const currentDist = Math.sqrt(cam.position.x ** 2 + cam.position.z ** 2);
+    const currentDist = cam.position.z;
     const diffDist = desiredDist - currentDist;
-    const dist = Math.abs(diffDist) > 0.01 ? currentDist + diffDist * 0.08 : currentDist;
     if (Math.abs(diffDist) > 0.01) {
+      cam.position.z = currentDist + diffDist * 0.08;
       moving = true;
     }
 
-    // Apply angle + distance on XZ plane
-    cam.position.x = Math.cos(currentAngle.current) * dist;
-    cam.position.z = Math.sin(currentAngle.current) * dist;
-
     cam.lookAt(0, cam.position.y, 0);
 
-    // Keep rendering while the camera is still interpolating
     if (moving) {
       invalidate();
     }
@@ -108,12 +84,34 @@ function CameraController({ targetY, angle, zoom, minY }: { targetY: number; ang
   return null;
 }
 
+function TowerRotator({ angle, children }: { angle: number; children: React.ReactNode }) {
+  const groupRef = useRef<THREE.Group>(null);
+  const angleRef = useRef(angle);
+  const currentAngle = useRef(angle);
+  const { invalidate } = useThree();
+
+  angleRef.current = angle;
+
+  useFrame(() => {
+    const diff = angleRef.current - currentAngle.current;
+    if (Math.abs(diff) > 0.001) {
+      currentAngle.current += diff * 0.08;
+      if (groupRef.current) {
+        groupRef.current.rotation.y = -currentAngle.current;
+      }
+      invalidate();
+    }
+  });
+
+  return <group ref={groupRef} rotation={[0, -angle, 0]}>{children}</group>;
+}
+
 export function CommitScene({ layout, repo, floorY, targetY, angle, zoom, minY }: CommitSceneProps) {
   return (
     <Canvas
       shadows
       frameloop="demand"
-      camera={{ position: [Math.cos(angle) * INITIAL_DISTANCE, targetY, Math.sin(angle) * INITIAL_DISTANCE], fov: 50 }}
+      camera={{ position: [0, targetY, INITIAL_DISTANCE], fov: 50 }}
       gl={{ antialias: true, toneMapping: 0 }}
       style={{ width: "100%", height: "100%" }}
     >
@@ -121,11 +119,13 @@ export function CommitScene({ layout, repo, floorY, targetY, angle, zoom, minY }
       <fog attach="fog" args={[scene.fog, 8, 35]} />
 
       <SceneLighting />
-      <TowerGroup layout={layout} repo={repo} />
-      <Floor yPosition={floorY} />
-<SceneEffects />
+      <TowerRotator angle={angle}>
+        <TowerGroup layout={layout} repo={repo} />
+        <Floor yPosition={floorY} />
+      </TowerRotator>
+      <SceneEffects />
 
-      <CameraController targetY={targetY} angle={angle} zoom={zoom} minY={minY} />
+      <CameraController targetY={targetY} zoom={zoom} minY={minY} />
     </Canvas>
   );
 }
