@@ -24,7 +24,7 @@ interface CommitBlockProps {
 }
 
 const ENTRY_Y_OFFSET = 16; // units above final position
-const SPRING_K = 0.16; // spring stiffness — lower = slower, more floaty
+const SPRING_K = 0.35; // spring stiffness — lower = slower, more floaty
 const SPRING_DAMP = 1.2; // damping — overdamped, no bounce
 
 const GLOW_DURATION_MS = 10 * 60 * 1000; // 10 minutes
@@ -251,7 +251,18 @@ function FileListFace({
   // Empirical char width for helvetiker bold at STATS_SMALL size in 3D
   const cwSmall = STATS_SMALL * 0.75;
 
-  const usable = height - PADDING * 2;
+  // Header stats
+  const filesText = `${commit.filesChanged} files changed`;
+  const addText = `+${commit.stats.additions}`;
+  const delText = `-${commit.stats.deletions}`;
+  const cw = STATS_SIZE * 0.62;
+  const gap = STATS_SIZE * 1.2;
+  const filesW = filesText.length * cw;
+  const addW = addText.length * cw;
+  const delW = delText.length * cw;
+  const bottomW = addW + gap + delW;
+
+  const usable = height - PADDING * 2 - STATS_SIZE * 3; // Account for header
   const maxRows = Math.max(1, Math.floor(usable / lineH));
 
   const files = commit.files.slice(0, maxRows);
@@ -282,10 +293,69 @@ function FileListFace({
     };
   });
 
-  const topY = usable / 2 - STATS_SMALL * 0.5;
+  // Position file list below the header (with spacing)
+  const headerEndY = height / 2 - PADDING - 0.05 - STATS_SIZE * 1.4 - 0.2;
+  const topY = headerEndY - STATS_SMALL * 0.5;
 
   return (
     <group>
+      {/* Header: files changed and stats */}
+      <group position={[-filesW / 2, height / 2 - PADDING - 0.05, 0]}>
+        <Text3D
+          font="/helvetiker_bold.typeface.json"
+          size={STATS_SIZE}
+          height={textDepth}
+          {...STATS_BEVEL}
+        >
+          {filesText}
+          <meshStandardMaterial
+            color={white.hex}
+            metalness={0.1}
+            roughness={0.5}
+            emissive={white.hex}
+            emissiveIntensity={0.1}
+          />
+        </Text3D>
+      </group>
+      {/* +N -N stats line */}
+      <group position={[-bottomW / 2, height / 2 - PADDING - 0.05 - STATS_SIZE * 1.4, 0]}>
+        <group position={[0, 0, 0]}>
+          <Text3D
+            font="/helvetiker_bold.typeface.json"
+            size={STATS_SIZE}
+            height={textDepth}
+            {...STATS_BEVEL}
+          >
+            {addText}
+            <meshStandardMaterial
+              color={GREEN}
+              metalness={0.1}
+              roughness={0.5}
+              emissive={GREEN}
+              emissiveIntensity={0.25}
+            />
+          </Text3D>
+        </group>
+        <group position={[addW + gap, 0, 0]}>
+          <Text3D
+            font="/helvetiker_bold.typeface.json"
+            size={STATS_SIZE}
+            height={textDepth}
+            {...STATS_BEVEL}
+          >
+            {delText}
+            <meshStandardMaterial
+              color={RED}
+              metalness={0.1}
+              roughness={0.5}
+              emissive={RED}
+              emissiveIntensity={0.25}
+            />
+          </Text3D>
+        </group>
+      </group>
+
+      {/* File list entries */}
       {fileEntries.map((entry, i) => {
         const y = topY - i * lineH;
         const nameX = -maxW / 2;
@@ -386,235 +456,164 @@ function FileListFace({
 
 function FileStatsFace({
   commit,
-  height,
-  textDepth,
-  faceWidth = OCT_SIDE,
 }: {
   commit: CommitData;
-  height: number;
-  textDepth: number;
+  height?: number;
+  textDepth?: number;
   faceWidth?: number;
 }) {
-  const filesText = `${commit.filesChanged} files changed`;
-  const addText = `+${commit.stats.additions}`;
-  const delText = `-${commit.stats.deletions}`;
-
-  const cw = STATS_SIZE * 0.62;
-  const gap = STATS_SIZE * 1.2;
-
-  const filesW = filesText.length * cw;
-  const addW = addText.length * cw;
-  const delW = delText.length * cw;
-  const bottomW = addW + gap + delW;
-
-  const topY = height / 2 - PADDING - 0.05;
-  const lineY = topY - STATS_SIZE * 1.4;
-
   const breakdown = useMemo(
     () => computeExtBreakdown(commit.files),
     [commit.files],
   );
-  const maxFaceWidth = faceWidth - PADDING * 2;
-  const barHeight = 0.06;
-
-  // Bar starting Y below the +N -N line
-  const barY = lineY - STATS_SIZE * 2.0;
-  const cwSmall = STATS_SMALL * 0.62;
 
   return (
     <group>
-      {/* files changed — top line */}
-      <group position={[-filesW / 2, topY, 0]}>
-        <Text3D
-          font="/helvetiker_bold.typeface.json"
-          size={STATS_SIZE}
-          height={textDepth}
-          {...STATS_BEVEL}
-        >
-          {filesText}
-          <meshStandardMaterial
-            color={white.hex}
-            metalness={0.1}
-            roughness={0.5}
-            emissive={white.hex}
-            emissiveIntensity={0.1}
-          />
-        </Text3D>
-      </group>
-      {/* +N -N */}
-      <group position={[-bottomW / 2, lineY, 0]}>
-        <group position={[0, 0, 0]}>
-          <Text3D
-            font="/helvetiker_bold.typeface.json"
-            size={STATS_SIZE}
-            height={textDepth}
-            {...STATS_BEVEL}
-          >
-            {addText}
-            <meshStandardMaterial
-              color={GREEN}
-              metalness={0.1}
-              roughness={0.5}
-              emissive={GREEN}
-              emissiveIntensity={0.25}
-            />
-          </Text3D>
-        </group>
-        <group position={[addW + gap, 0, 0]}>
-          <Text3D
-            font="/helvetiker_bold.typeface.json"
-            size={STATS_SIZE}
-            height={textDepth}
-            {...STATS_BEVEL}
-          >
-            {delText}
-            <meshStandardMaterial
-              color={RED}
-              metalness={0.1}
-              roughness={0.5}
-              emissive={RED}
-              emissiveIntensity={0.25}
-            />
-          </Text3D>
-        </group>
-      </group>
 
-      {/* Stacked percentage bar */}
-      {(() => {
-        const barDepth = 0.08;
-        const barProtrude = barDepth * 0.6;
-        // Precompute positions to avoid mutable xOff during render
-        const segments = breakdown.reduce<
-          { x: number; w: number; color: number }[]
-        >((acc, b) => {
-          const prevEnd =
-            acc.length > 0
-              ? acc[acc.length - 1].x + acc[acc.length - 1].w / 2
-              : -maxFaceWidth / 2;
-          const w = (b.pct / 100) * maxFaceWidth;
-          acc.push({
-            x: prevEnd + w / 2,
-            w: Math.max(w - 0.01, 0.01),
-            color: b.color,
+      {/* Pie chart for file type percentages */}
+      <group position={[0, 0, 0]}>
+        {(() => {
+          const pieRadius = 0.55;
+          const pieDepth = 0.08;
+          const pieProtrude = pieDepth * 0.6;
+          const items = breakdown.slice(0, 6);
+
+          // Create pie slices
+          let currentAngle = 0;
+          const slices = items.map((b) => {
+            const sliceAngle = (b.pct / 100) * Math.PI * 2;
+            const slice = {
+              color: b.color,
+              startAngle: currentAngle,
+              endAngle: currentAngle + sliceAngle,
+              ext: b.ext,
+              pct: b.pct,
+            };
+            currentAngle += sliceAngle;
+            return slice;
           });
-          return acc;
-        }, []);
-        return segments.map((seg, i) => (
-          <group key={i} position={[seg.x, barY, barProtrude]}>
-            <mesh>
-              <boxGeometry args={[seg.w, barHeight, barDepth]} />
-              <meshStandardMaterial
-                color={seg.color}
-                metalness={0.35}
-                roughness={0.35}
-                emissive={seg.color}
-                emissiveIntensity={0.2}
-              />
-            </mesh>
-            {/* Edge highlight */}
-            <lineSegments>
-              <edgesGeometry
-                args={[new THREE.BoxGeometry(seg.w, barHeight, barDepth)]}
-              />
-              <lineBasicMaterial
-                color={seg.color}
-                toneMapped={false}
-                transparent
-                opacity={0.5}
-              />
-            </lineSegments>
-          </group>
-        ));
-      })()}
 
-      {/* Extension labels below bar — horizontal row */}
-      {(() => {
-        const items = breakdown.slice(0, 4);
-        const maxPct = Math.max(...items.map((b) => b.pct), 1);
-        const y = barY - barHeight / 2 - 0.3;
-        const baseIconSize = 0.28;
-        const dotSize = 0.1;
-        const MIN_SCALE = 0.5;
-        const MAX_SCALE = 1.6;
-        // Calculate total width to center the row
-        let totalW = 0;
-        const itemWidths: number[] = [];
-        const scales: number[] = [];
-        for (const b of items) {
-          const logo = EXT_TO_LOGO[b.ext];
-          const s = MIN_SCALE + (b.pct / maxPct) * (MAX_SCALE - MIN_SCALE);
-          scales.push(s);
-          const iconW = logo ? baseIconSize * s : dotSize;
-          const label = `.${b.ext} ${b.pct}%`;
-          const labelW = label.length * cwSmall;
-          const itemW = iconW + labelW + 0.1;
-          itemWidths.push(itemW);
-          totalW += itemW;
-        }
-        // Precompute x positions to avoid mutable xOff during render
-        const xPositions = itemWidths.reduce<number[]>((acc) => {
-          const prev =
-            acc.length > 0
-              ? acc[acc.length - 1] + itemWidths[acc.length - 1]
-              : -totalW / 2;
-          acc.push(prev);
-          return acc;
-        }, []);
-        return items.map((b, i) => {
-          const logo = EXT_TO_LOGO[b.ext];
-          const label = `.${b.ext} ${b.pct}%`;
-          const s = scales[i];
-          const iconW = logo ? baseIconSize * s : dotSize;
-          const x = xPositions[i];
-          return (
-            <group key={b.ext}>
-              {logo ? (
-                <SmallLogoIcon
-                  language={logo}
-                  scale={s}
-                  position={[
-                    x + iconW / 2,
-                    y + STATS_SMALL * 0.35,
-                    textDepth / 2,
-                  ]}
-                />
-              ) : (
-                <mesh
-                  position={[
-                    x + iconW / 2,
-                    y + STATS_SMALL * 0.35,
-                    textDepth / 2,
-                  ]}
-                >
-                  <circleGeometry args={[0.03 * s, 16]} />
+          return slices.map((slice, i) => {
+            // Create pie segment geometry
+            const segments = Math.max(4, Math.ceil((slice.endAngle - slice.startAngle) * 32));
+            const points: THREE.Vector3[] = [new THREE.Vector3(0, 0, 0)]; // center
+
+            // Add arc points
+            for (let j = 0; j <= segments; j++) {
+              const angle = slice.startAngle + (j / segments) * (slice.endAngle - slice.startAngle);
+              points.push(
+                new THREE.Vector3(
+                  Math.cos(angle) * pieRadius,
+                  Math.sin(angle) * pieRadius,
+                  0
+                )
+              );
+            }
+
+            const geo = new THREE.BufferGeometry();
+            geo.setFromPoints(points);
+            const indices = [];
+            for (let j = 1; j < points.length - 1; j++) {
+              indices.push(0, j, j + 1);
+            }
+            geo.setIndex(new THREE.BufferAttribute(new Uint32Array(indices), 1));
+            geo.computeVertexNormals();
+
+            return (
+              <group key={i} position={[0, 0, pieProtrude]}>
+                {/* Front and back faces */}
+                <mesh geometry={geo} position={[0, 0, pieDepth / 2]}>
                   <meshStandardMaterial
-                    color={b.color}
-                    emissive={b.color}
-                    emissiveIntensity={0.3}
+                    color={slice.color}
+                    metalness={0.3}
+                    roughness={0.4}
+                    emissive={slice.color}
+                    emissiveIntensity={0.15}
+                    side={THREE.FrontSide}
                   />
                 </mesh>
-              )}
-              <group position={[x + iconW, y, 0]}>
-                <Text3D
-                  font="/helvetiker_bold.typeface.json"
-                  size={STATS_SMALL}
-                  height={textDepth}
-                  {...SMALL_BEVEL}
+                <mesh
+                  geometry={geo}
+                  position={[0, 0, -pieDepth / 2]}
+                  scale={[1, 1, -1]}
                 >
-                  {label}
                   <meshStandardMaterial
-                    color={STAT_GREY}
-                    metalness={0.1}
-                    roughness={0.5}
-                    emissive={STAT_GREY}
+                    color={slice.color}
+                    metalness={0.3}
+                    roughness={0.4}
+                    emissive={slice.color}
                     emissiveIntensity={0.1}
+                    side={THREE.FrontSide}
                   />
-                </Text3D>
+                </mesh>
               </group>
-            </group>
-          );
-        });
-      })()}
+            );
+          });
+        })()}
+
+        {/* Logos and percentages ON the pie slices */}
+        {(() => {
+          const items = breakdown.slice(0, 6);
+          const pieRadius = 0.55;
+          const labelDistance = pieRadius * 0.45; // position labels at 45% of radius (center of slice)
+          const textDepthLocal = 0.02;
+
+          let currentAngle = 0;
+          return items.map((b) => {
+            const sliceAngle = (b.pct / 100) * Math.PI * 2;
+            const midAngle = currentAngle + sliceAngle / 2;
+            currentAngle += sliceAngle;
+
+            const logo = EXT_TO_LOGO[b.ext];
+            const label = `${b.pct}%`;
+
+            // Position on the pie slice itself
+            const labelX = Math.cos(midAngle) * labelDistance;
+            const labelY = Math.sin(midAngle) * labelDistance;
+
+            return (
+              <group key={b.ext}>
+                {/* Logo/icon on the slice */}
+                {logo ? (
+                  <SmallLogoIcon
+                    language={logo}
+                    scale={0.7}
+                    position={[labelX, labelY, textDepthLocal + 0.05]}
+                  />
+                ) : (
+                  <mesh position={[labelX, labelY, textDepthLocal + 0.05]}>
+                    <circleGeometry args={[0.02, 16]} />
+                    <meshStandardMaterial
+                      color={white.hex}
+                      emissive={white.hex}
+                      emissiveIntensity={0.3}
+                    />
+                  </mesh>
+                )}
+
+                {/* Percentage label */}
+                <group position={[labelX, labelY - 0.12, textDepthLocal]}>
+                  <Text3D
+                    font="/helvetiker_bold.typeface.json"
+                    size={STATS_SMALL * 0.6}
+                    height={textDepthLocal}
+                    {...SMALL_BEVEL}
+                  >
+                    {label}
+                    <meshStandardMaterial
+                      color={white.hex}
+                      metalness={0.1}
+                      roughness={0.5}
+                      emissive={white.hex}
+                      emissiveIntensity={0.3}
+                    />
+                  </Text3D>
+                </group>
+              </group>
+            );
+          });
+        })()}
+      </group>
     </group>
   );
 }

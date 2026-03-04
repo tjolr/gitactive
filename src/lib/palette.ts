@@ -275,18 +275,18 @@ export const time = {
 // ── File-extension brand colors ─────────────────────────────────────
 export const extColors: Record<string, number> = {
   ts: blueHex[500], // 0x3178c6 – manually set below
-  tsx: 0x3178c6,
+  tsx: blueHex[300], // lighter blue for visual distinction
   js: yellowHex[400], // 0xf7df1e
-  jsx: yellowHex[400],
+  jsx: yellowHex[300], // lighter yellow for visual distinction
   vue: 0x42b883,
   sql: orangeHex[500], // 0xe38c00
   css: 0x264de4,
   scss: pinkHex[300], // 0xcc6699
   html: 0xe34f26,
   json: neutralHex[300], // 0xa8a8a8
-  md: neutralHex[300],
+  md: neutralHex[200], // lighter gray for visual distinction
   yml: 0xcb171e,
-  yaml: 0xcb171e,
+  yaml: 0xde5659, // slightly different red for visual distinction
   py: 0x3776ab,
   rs: 0xdea584,
   go: tealHex[300], // 0x00add8
