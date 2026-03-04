@@ -555,7 +555,8 @@ function FileStatsFace({
         {(() => {
           const items = breakdown.slice(0, 6);
           const pieRadius = 0.55;
-          const labelDistance = pieRadius * 0.45; // position labels at 45% of radius (center of slice)
+          const logoDistance = pieRadius * 0.5; // position logos at 50% of radius
+          const percentDistance = pieRadius * 0.35; // position percentages more centrally
           const textDepthLocal = 0.02;
 
           let currentAngle = 0;
@@ -567,9 +568,15 @@ function FileStatsFace({
             const logo = EXT_TO_LOGO[b.ext];
             const label = `${b.pct}%`;
 
-            // Position on the pie slice itself
-            const labelX = Math.cos(midAngle) * labelDistance;
-            const labelY = Math.sin(midAngle) * labelDistance;
+            // Position logo on outer part of slice
+            const logoX = Math.cos(midAngle) * logoDistance;
+            const logoY = Math.sin(midAngle) * logoDistance;
+
+            // Position percentage offset perpendicular to the slice angle
+            // This avoids collision with the logo
+            const perpAngle = midAngle + Math.PI / 2;
+            const percentX = Math.cos(midAngle) * percentDistance + Math.cos(perpAngle) * 0.25;
+            const percentY = Math.sin(midAngle) * percentDistance + Math.sin(perpAngle) * 0.25;
 
             return (
               <group key={b.ext}>
@@ -577,11 +584,11 @@ function FileStatsFace({
                 {logo ? (
                   <SmallLogoIcon
                     language={logo}
-                    scale={0.7}
-                    position={[labelX, labelY, textDepthLocal + 0.05]}
+                    scale={0.9}
+                    position={[logoX, logoY, textDepthLocal + 0.05]}
                   />
                 ) : (
-                  <mesh position={[labelX, labelY, textDepthLocal + 0.05]}>
+                  <mesh position={[logoX, logoY, textDepthLocal + 0.05]}>
                     <circleGeometry args={[0.02, 16]} />
                     <meshStandardMaterial
                       color={white.hex}
@@ -591,12 +598,12 @@ function FileStatsFace({
                   </mesh>
                 )}
 
-                {/* Percentage label */}
-                <group position={[labelX, labelY - 0.12, textDepthLocal]}>
+                {/* Percentage label - centered on the slice, rendered on top */}
+                <group position={[percentX, percentY, 0.15]}>
                   <Text3D
                     font="/helvetiker_bold.typeface.json"
-                    size={STATS_SMALL * 0.6}
-                    height={textDepthLocal}
+                    size={STATS_SMALL * 0.85}
+                    height={0.01}
                     {...SMALL_BEVEL}
                   >
                     {label}
@@ -605,7 +612,7 @@ function FileStatsFace({
                       metalness={0.1}
                       roughness={0.5}
                       emissive={white.hex}
-                      emissiveIntensity={0.3}
+                      emissiveIntensity={0.8}
                     />
                   </Text3D>
                 </group>
