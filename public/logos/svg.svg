@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <rect width="256" height="256" rx="32" fill="#9ca3af"/>
+  <g transform="translate(128, 128)">
+    <!-- File document shape -->
+    <rect x="-35" y="-50" width="70" height="100" rx="4" fill="#ffffff"/>
+    <!-- Lines on document -->
+    <line x1="-25" y1="-35" x2="25" y2="-35" stroke="#9ca3af" stroke-width="4" stroke-linecap="round"/>
+    <line x1="-25" y1="-20" x2="25" y2="-20" stroke="#9ca3af" stroke-width="4" stroke-linecap="round"/>
+    <line x1="-25" y1="-5" x2="25" y2="-5" stroke="#9ca3af" stroke-width="4" stroke-linecap="round"/>
+    <line x1="-25" y1="10" x2="15" y2="10" stroke="#9ca3af" stroke-width="4" stroke-linecap="round"/>
+  </g>
+</svg>

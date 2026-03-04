@@ -20,6 +20,7 @@ const LOGO_URLS: Record<TechLanguage, string> = {
   markdown: "/logos/markdown.svg",
   html: "/logos/html.svg",
   png: "/logos/png.svg",
+  svg: "/logos/svg.svg",
 };
 
 // Map file extensions to available logos
@@ -38,6 +39,7 @@ export const EXT_TO_LOGO: Record<string, TechLanguage> = {
   html: "html",
   htm: "html",
   png: "png",
+  svg: "svg",
 };
 
 // Module-level texture cache — each logo loaded only once

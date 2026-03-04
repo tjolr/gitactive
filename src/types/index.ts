@@ -1,4 +1,4 @@
-export type TechLanguage = "vue" | "react" | "typescript" | "kotlin" | "java" | "sql" | "prisma" | "json" | "markdown" | "html" | "png";
+export type TechLanguage = "vue" | "react" | "typescript" | "kotlin" | "java" | "sql" | "prisma" | "json" | "markdown" | "html" | "png" | "svg";
 
 export interface FileChange {
   filename: string;

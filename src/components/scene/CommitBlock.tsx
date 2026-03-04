@@ -318,7 +318,13 @@ function FileListFace({
         </Text3D>
       </group>
       {/* +N -N stats line */}
-      <group position={[-bottomW / 2, height / 2 - PADDING - 0.05 - STATS_SIZE * 1.4, 0]}>
+      <group
+        position={[
+          -bottomW / 2,
+          height / 2 - PADDING - 0.05 - STATS_SIZE * 1.4,
+          0,
+        ]}
+      >
         <group position={[0, 0, 0]}>
           <Text3D
             font="/helvetiker_bold.typeface.json"
@@ -469,13 +475,11 @@ function FileStatsFace({
 
   return (
     <group>
-
       {/* Pie chart for file type percentages */}
       <group position={[0, 0, 0]}>
         {(() => {
           const pieRadius = 0.55;
-          const pieDepth = 0.08;
-          const pieProtrude = pieDepth * 0.6;
+          const pieDepth = 0.18;
           const items = breakdown.slice(0, 6);
 
           // Create pie slices
@@ -495,18 +499,23 @@ function FileStatsFace({
 
           return slices.map((slice, i) => {
             // Create pie segment geometry
-            const segments = Math.max(4, Math.ceil((slice.endAngle - slice.startAngle) * 32));
+            const segments = Math.max(
+              4,
+              Math.ceil((slice.endAngle - slice.startAngle) * 32),
+            );
             const points: THREE.Vector3[] = [new THREE.Vector3(0, 0, 0)]; // center
 
             // Add arc points
             for (let j = 0; j <= segments; j++) {
-              const angle = slice.startAngle + (j / segments) * (slice.endAngle - slice.startAngle);
+              const angle =
+                slice.startAngle +
+                (j / segments) * (slice.endAngle - slice.startAngle);
               points.push(
                 new THREE.Vector3(
                   Math.cos(angle) * pieRadius,
                   Math.sin(angle) * pieRadius,
-                  0
-                )
+                  0,
+                ),
               );
             }
 
@@ -516,11 +525,13 @@ function FileStatsFace({
             for (let j = 1; j < points.length - 1; j++) {
               indices.push(0, j, j + 1);
             }
-            geo.setIndex(new THREE.BufferAttribute(new Uint32Array(indices), 1));
+            geo.setIndex(
+              new THREE.BufferAttribute(new Uint32Array(indices), 1),
+            );
             geo.computeVertexNormals();
 
             return (
-              <group key={i} position={[0, 0, pieProtrude]}>
+              <group key={i} position={[0, 0, pieDepth / 2]}>
                 {/* Front and back faces */}
                 <mesh geometry={geo} position={[0, 0, pieDepth / 2]}>
                   <meshStandardMaterial
@@ -546,6 +557,118 @@ function FileStatsFace({
                     side={THREE.FrontSide}
                   />
                 </mesh>
+
+                {/* Outer arc wall */}
+                <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
+                  <cylinderGeometry
+                    args={[
+                      pieRadius,
+                      pieRadius,
+                      pieDepth,
+                      segments,
+                      1,
+                      true,
+                      slice.startAngle + Math.PI / 2,
+                      slice.endAngle - slice.startAngle,
+                    ]}
+                  />
+                  <meshStandardMaterial
+                    color={slice.color}
+                    metalness={0.3}
+                    roughness={0.4}
+                    emissive={slice.color}
+                    emissiveIntensity={0.1}
+                    side={THREE.DoubleSide}
+                  />
+                </mesh>
+
+                {/* Radial edge walls */}
+                {(() => {
+                  // Start edge quad
+                  const startX = Math.cos(slice.startAngle) * pieRadius;
+                  const startY = Math.sin(slice.startAngle) * pieRadius;
+                  const startGeo = new THREE.BufferGeometry();
+                  const startVertices = new Float32Array([
+                    0,
+                    0,
+                    -pieDepth / 2,
+                    startX,
+                    startY,
+                    -pieDepth / 2,
+                    startX,
+                    startY,
+                    pieDepth / 2,
+                    0,
+                    0,
+                    pieDepth / 2,
+                  ]);
+                  startGeo.setAttribute(
+                    "position",
+                    new THREE.BufferAttribute(startVertices, 3),
+                  );
+                  startGeo.setIndex(
+                    new THREE.BufferAttribute(
+                      new Uint32Array([0, 1, 2, 0, 2, 3]),
+                      1,
+                    ),
+                  );
+                  startGeo.computeVertexNormals();
+
+                  // End edge quad
+                  const endX = Math.cos(slice.endAngle) * pieRadius;
+                  const endY = Math.sin(slice.endAngle) * pieRadius;
+                  const endGeo = new THREE.BufferGeometry();
+                  const endVertices = new Float32Array([
+                    0,
+                    0,
+                    -pieDepth / 2,
+                    endX,
+                    endY,
+                    -pieDepth / 2,
+                    endX,
+                    endY,
+                    pieDepth / 2,
+                    0,
+                    0,
+                    pieDepth / 2,
+                  ]);
+                  endGeo.setAttribute(
+                    "position",
+                    new THREE.BufferAttribute(endVertices, 3),
+                  );
+                  endGeo.setIndex(
+                    new THREE.BufferAttribute(
+                      new Uint32Array([0, 1, 2, 0, 2, 3]),
+                      1,
+                    ),
+                  );
+                  endGeo.computeVertexNormals();
+
+                  return (
+                    <>
+                      <mesh geometry={startGeo}>
+                        <meshStandardMaterial
+                          color={slice.color}
+                          metalness={0.3}
+                          roughness={0.4}
+                          emissive={slice.color}
+                          emissiveIntensity={0.1}
+                          side={THREE.DoubleSide}
+                        />
+                      </mesh>
+                      <mesh geometry={endGeo}>
+                        <meshStandardMaterial
+                          color={slice.color}
+                          metalness={0.3}
+                          roughness={0.4}
+                          emissive={slice.color}
+                          emissiveIntensity={0.1}
+                          side={THREE.DoubleSide}
+                        />
+                      </mesh>
+                    </>
+                  );
+                })()}
               </group>
             );
           });
@@ -555,9 +678,9 @@ function FileStatsFace({
         {(() => {
           const items = breakdown.slice(0, 6);
           const pieRadius = 0.55;
+          const pieDepth = 0.18;
           const logoDistance = pieRadius * 0.5; // position logos at 50% of radius
           const percentDistance = pieRadius * 0.35; // position percentages more centrally
-          const textDepthLocal = 0.02;
 
           let currentAngle = 0;
           return items.map((b) => {
@@ -575,8 +698,10 @@ function FileStatsFace({
             // Position percentage offset perpendicular to the slice angle
             // This avoids collision with the logo
             const perpAngle = midAngle + Math.PI / 2;
-            const percentX = Math.cos(midAngle) * percentDistance + Math.cos(perpAngle) * 0.25;
-            const percentY = Math.sin(midAngle) * percentDistance + Math.sin(perpAngle) * 0.25;
+            const percentX =
+              Math.cos(midAngle) * percentDistance + Math.cos(perpAngle) * 0.25;
+            const percentY =
+              Math.sin(midAngle) * percentDistance + Math.sin(perpAngle) * 0.25;
 
             return (
               <group key={b.ext}>
@@ -585,10 +710,10 @@ function FileStatsFace({
                   <SmallLogoIcon
                     language={logo}
                     scale={0.9}
-                    position={[logoX, logoY, textDepthLocal + 0.05]}
+                    position={[logoX, logoY, pieDepth + 0.05]}
                   />
                 ) : (
-                  <mesh position={[logoX, logoY, textDepthLocal + 0.05]}>
+                  <mesh position={[logoX, logoY, pieDepth + 0.05]}>
                     <circleGeometry args={[0.02, 16]} />
                     <meshStandardMaterial
                       color={white.hex}
@@ -599,7 +724,7 @@ function FileStatsFace({
                 )}
 
                 {/* Percentage label - centered on the slice, rendered on top */}
-                <group position={[percentX, percentY, 0.15]}>
+                <group position={[percentX, percentY, pieDepth + 0.02]}>
                   <Text3D
                     font="/helvetiker_bold.typeface.json"
                     size={STATS_SMALL * 0.85}
