@@ -13,6 +13,8 @@ import {
 import { extColors, neutral, scene, stat, white } from "../../lib/palette";
 import type { CommitData } from "../../types";
 import { EXT_TO_LOGO, SmallLogoIcon } from "./TechLogoMedallion";
+import { DirectoryTreeFace } from "./DirectoryTreeFace";
+import { BuildStatusFace } from "./BuildStatusFace";
 
 interface CommitBlockProps {
   commit: CommitData;
@@ -1078,7 +1080,43 @@ export function CommitBlock({
         </group>
       )}
 
-      {/* Faces 2,3,5,6: empty */}
+      {/* Face 6: Left — directory tree */}
+      {commit.files.length > 0 && (
+        <group
+          position={[
+            Math.sin(FACE_ANGLES[6]) * faceD,
+            0,
+            Math.cos(FACE_ANGLES[6]) * faceD,
+          ]}
+          rotation={[0, FACE_ANGLES[6], 0]}
+        >
+          <DirectoryTreeFace
+            commit={commit}
+            height={height}
+            textDepth={textDepth}
+            faceWidth={OCT_SIDE}
+          />
+        </group>
+      )}
+
+      {/* Face 2: Right — CI build status */}
+      <group
+        position={[
+          Math.sin(FACE_ANGLES[2]) * faceD,
+          0,
+          Math.cos(FACE_ANGLES[2]) * faceD,
+        ]}
+        rotation={[0, FACE_ANGLES[2], 0]}
+      >
+        <BuildStatusFace
+          checkRuns={commit.checkRuns}
+          height={height}
+          textDepth={textDepth}
+          faceWidth={OCT_SIDE}
+        />
+      </group>
+
+      {/* Faces 3,4,5: empty */}
 
       {/* Fire aura — outer shell slightly wider than the block, rendered only as a
           fringe beyond the block's silhouette (depth-tested away where it overlaps).

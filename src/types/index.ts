@@ -20,6 +20,14 @@ export interface CommitData {
   filesChanged: number;
   files: FileChange[];
   primaryLanguage?: TechLanguage;
+  checkRuns?: CheckRun[];
+}
+
+export interface CheckRun {
+  id: number;
+  name: string;
+  status: "queued" | "in_progress" | "completed";
+  conclusion: "success" | "failure" | "neutral" | "cancelled" | "skipped" | "timed_out" | "action_required" | null;
 }
 
 export interface RepoInfo {
