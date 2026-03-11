@@ -18,7 +18,7 @@ export function StickyDateLabel({ layout, targetY }: StickyDateLabelProps) {
   const { camera } = useThree();
   const layoutRef = useRef(layout);
   const targetYRef = useRef(targetY);
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingDateRef = useRef<string | null>(null);
 
   layoutRef.current = layout;
