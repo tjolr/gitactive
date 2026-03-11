@@ -850,66 +850,90 @@ export function CommitBlock({
 
   const { invalidate } = useThree();
 
-  useFrame((_, delta) => {
+  // Static glow: compute color once on mount, then update via interval (every 60s)
+  // instead of every frame. This avoids calling invalidate() continuously.
+  const updateGlow = () => {
+    if (!glowMatRef.current) return;
     const glowAge =
       newSince !== undefined ? Date.now() - newSince : GLOW_DURATION_MS;
-    const isAnimating = yOffsetRef.current !== 0 || yVelocityRef.current !== 0;
     const isGlowing = glowAge < GLOW_DURATION_MS;
 
-    if (!isAnimating && !isGlowing) return;
-
-    // Spring-based Y entry animation
-    if (isAnimating) {
-      const dt = Math.min(delta, 0.05);
-      const springForce = -SPRING_K * yOffsetRef.current;
-      const dampForce = -SPRING_DAMP * yVelocityRef.current;
-      yVelocityRef.current += (springForce + dampForce) * dt;
-      yOffsetRef.current += yVelocityRef.current * dt;
-      if (
-        Math.abs(yOffsetRef.current) < 0.001 &&
-        Math.abs(yVelocityRef.current) < 0.001
-      ) {
-        yOffsetRef.current = 0;
-        yVelocityRef.current = 0;
-      }
-      if (groupRef.current) {
-        groupRef.current.position.y = position[1] + yOffsetRef.current;
-      }
+    if (!isGlowing) {
+      glowMatRef.current.visible = false;
+      invalidate();
+      return;
     }
 
-    // Outer fire glow: HDR fire colors fade from white-hot → orange → ember over 10 min.
-    // The outer mesh sits just beyond the block silhouette; bloom spreads it into an aura.
-    if (glowMatRef.current) {
-      if (!isGlowing) {
-        glowMatRef.current.visible = false;
-      } else {
-        const t = 1 - glowAge / GLOW_DURATION_MS; // 1 → 0
-        const now = Date.now();
-        const flicker =
-          0.85 + 0.15 * Math.sin(now * 0.007) * Math.sin(now * 0.0031);
-        const intensity = t * flicker;
-        // Fire palette: white-yellow when fresh, deep orange as it ages
-        // High HDR values so bloom spreads the glow far from the block
-        const r = intensity * 8.0;
-        const g = intensity * (1.0 + 3.0 * t); // more yellow when t is high (fresh)
-        const b = intensity * 0.4 * t; // tiny blue tint only when white-hot
-        glowMatRef.current.color.setRGB(r, g, b);
-        glowMatRef.current.opacity = Math.min(1.0, intensity * 2.5);
-        glowMatRef.current.visible = true;
-      }
+    const t = 1 - glowAge / GLOW_DURATION_MS; // 1 → 0
+    const intensity = t; // no flicker — stable glow
+    const r = intensity * 8.0;
+    const g = intensity * (1.0 + 3.0 * t);
+    const b = intensity * 0.4 * t;
+    glowMatRef.current.color.setRGB(r, g, b);
+    glowMatRef.current.opacity = Math.min(1.0, intensity * 2.5);
+    glowMatRef.current.visible = true;
+    invalidate();
+  };
+
+  useEffect(() => {
+    if (newSince === undefined) return;
+    // Initial glow update (after mount, once ref is available)
+    const initialTimeout = setTimeout(updateGlow, 0);
+    // Update glow every 60 seconds
+    const interval = setInterval(updateGlow, 60_000);
+    // Stop after glow duration
+    const expireTimeout = setTimeout(() => {
+      clearInterval(interval);
+      updateGlow(); // final update to hide
+    }, GLOW_DURATION_MS);
+
+    return () => {
+      clearTimeout(initialTimeout);
+      clearInterval(interval);
+      clearTimeout(expireTimeout);
+    };
+  }, [newSince]);
+
+  useFrame((_, delta) => {
+    const isAnimating = yOffsetRef.current !== 0 || yVelocityRef.current !== 0;
+
+    if (!isAnimating) return;
+
+    // Spring-based Y entry animation
+    const dt = Math.min(delta, 0.05);
+    const springForce = -SPRING_K * yOffsetRef.current;
+    const dampForce = -SPRING_DAMP * yVelocityRef.current;
+    yVelocityRef.current += (springForce + dampForce) * dt;
+    yOffsetRef.current += yVelocityRef.current * dt;
+    if (
+      Math.abs(yOffsetRef.current) < 0.001 &&
+      Math.abs(yVelocityRef.current) < 0.001
+    ) {
+      yOffsetRef.current = 0;
+      yVelocityRef.current = 0;
+    }
+    if (groupRef.current) {
+      groupRef.current.position.y = position[1] + yOffsetRef.current;
     }
 
     invalidate();
   });
+  // Tick every 30s so relative timestamps stay fresh
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
   const color = authorColorHex(commit.authorLogin);
   const cssColor = authorColor(commit.authorLogin);
   const { hex: timeColor, css: timeCssColor } = useMemo(
     () => timeAgoColor(commit.date),
-    [commit.date],
+    [commit.date, tick],
   );
   const timeHasGlowEffect = useMemo(
     () => timeHasGlow(commit.date),
-    [commit.date],
+    [commit.date, tick],
   );
   const textDepth = 0;
 
@@ -924,7 +948,7 @@ export function CommitBlock({
     [commit.title, maxLines],
   );
 
-  const relTime = useMemo(() => timeAgo(commit.date), [commit.date]);
+  const relTime = useMemo(() => timeAgo(commit.date), [commit.date, tick]);
   const faceProps = {
     commit,
     color,

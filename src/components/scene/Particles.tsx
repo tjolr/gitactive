@@ -1,5 +1,4 @@
-import { useRef, useMemo, useEffect } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useMemo } from "react";
 import * as THREE from "three";
 import { accent } from "../../lib/palette";
 
@@ -12,54 +11,18 @@ interface ParticlesProps {
 }
 
 export function Particles({ targetY }: ParticlesProps) {
-  const pointsRef = useRef<THREE.Points>(null);
-  const initialized = useRef(false);
-  const centerY = useRef(targetY);
-
-  useEffect(() => {
-    centerY.current = targetY;
+  const positions = useMemo(() => {
+    const arr = new Float32Array(PARTICLE_COUNT * 3);
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+      arr[i * 3] = (Math.random() - 0.5) * SPREAD_XZ;
+      arr[i * 3 + 1] = targetY + (Math.random() - 0.5) * SPREAD_Y;
+      arr[i * 3 + 2] = (Math.random() - 0.5) * SPREAD_XZ;
+    }
+    return arr;
   }, [targetY]);
 
-  const positions = useMemo(() => {
-    return new Float32Array(PARTICLE_COUNT * 3);
-  }, []);
-
-  useFrame((_, delta) => {
-    if (!pointsRef.current) return;
-    const cy = centerY.current;
-    const pos = pointsRef.current.geometry.attributes.position;
-    const halfY = SPREAD_Y / 2;
-
-    if (!initialized.current) {
-      for (let i = 0; i < PARTICLE_COUNT; i++) {
-        pos.setX(i, (Math.random() - 0.5) * SPREAD_XZ);
-        pos.setY(i, cy + (Math.random() - 0.5) * SPREAD_Y);
-        pos.setZ(i, (Math.random() - 0.5) * SPREAD_XZ);
-      }
-      pos.needsUpdate = true;
-      initialized.current = true;
-      return;
-    }
-
-    for (let i = 0; i < PARTICLE_COUNT; i++) {
-      const y = pos.getY(i);
-      pos.setY(i, y + delta * 0.3);
-      if (y > cy + halfY) {
-        pos.setY(i, cy - halfY);
-        pos.setX(i, (Math.random() - 0.5) * SPREAD_XZ);
-        pos.setZ(i, (Math.random() - 0.5) * SPREAD_XZ);
-      }
-      if (y < cy - halfY) {
-        pos.setY(i, cy + (Math.random() - 0.5) * SPREAD_Y);
-        pos.setX(i, (Math.random() - 0.5) * SPREAD_XZ);
-        pos.setZ(i, (Math.random() - 0.5) * SPREAD_XZ);
-      }
-    }
-    pos.needsUpdate = true;
-  });
-
   return (
-    <points ref={pointsRef} frustumCulled={false}>
+    <points frustumCulled={false}>
       <bufferGeometry>
         <bufferAttribute
           attach="attributes-position"
