@@ -43,10 +43,42 @@ async function fetchJSON<T>(url: string, token?: string): Promise<T> {
   }
   const res = await fetch(url, { headers });
   if (!res.ok) {
-    if (res.status === 404) throw new Error("Repository not found");
-    if (res.status === 403) throw new Error("Rate limit exceeded. Try adding a personal access token.");
-    if (res.status === 401) throw new Error("Invalid token or unauthorized");
-    throw new Error(`GitHub API error: ${res.status}`);
+    if (res.status === 404) {
+      if (token) {
+        throw new Error(
+          "Repository not found. If this is a private repo, make sure your token has the \"Contents: Read-only\" permission (fine-grained) or the \"repo\" scope (classic)."
+        );
+      } else {
+        throw new Error(
+          "Repository not found. If this is a private repo, add a Personal Access Token with read access."
+        );
+      }
+    }
+    if (res.status === 403) {
+      const remaining = res.headers.get("x-ratelimit-remaining");
+      const resetAt = res.headers.get("x-ratelimit-reset");
+      if (remaining === "0" && resetAt) {
+        const resetDate = new Date(Number(resetAt) * 1000);
+        const minutes = Math.ceil((resetDate.getTime() - Date.now()) / 60000);
+        throw new Error(
+          `Rate limit exceeded. Resets in ~${minutes} minute${minutes !== 1 ? "s" : ""}. ${
+            token ? "Your token allows 5,000 requests/hour." : "Add a Personal Access Token to get 5,000 requests/hour instead of 60."
+          }`
+        );
+      }
+      throw new Error(
+        "Access denied (403). Your token may lack the required permissions. For private repos, use a token with the \"Contents: Read-only\" permission (fine-grained) or the \"repo\" scope (classic)."
+      );
+    }
+    if (res.status === 401) {
+      throw new Error(
+        "Authentication failed (401). Your token may be expired or invalid. Generate a new token at github.com/settings/tokens."
+      );
+    }
+    if (res.status === 422) {
+      throw new Error("Invalid request. Check that the repository name and owner are correct.");
+    }
+    throw new Error(`GitHub API error (${res.status}). Check that the repository URL is correct and try again.`);
   }
   return res.json();
 }

@@ -18,6 +18,9 @@ export function StickyDateLabel({ layout, targetY }: StickyDateLabelProps) {
   const { camera } = useThree();
   const layoutRef = useRef(layout);
   const targetYRef = useRef(targetY);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const pendingDateRef = useRef<string | null>(null);
+
   layoutRef.current = layout;
   targetYRef.current = targetY;
 
@@ -31,9 +34,23 @@ export function StickyDateLabel({ layout, targetY }: StickyDateLabelProps) {
       groupRef.current.position.y = camera.position.y;
     }
 
-    // Derive date from targetY; only setState when it actually changes
+    // Compute date and debounce updates
     const date = computeDate(layoutRef.current, targetYRef.current);
-    setCurrentDate((prev) => (prev === date ? prev : date));
+
+    if (date !== pendingDateRef.current) {
+      pendingDateRef.current = date;
+
+      // Clear existing timer
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+
+      // Set new debounced update
+      debounceTimerRef.current = setTimeout(() => {
+        setCurrentDate(date);
+        debounceTimerRef.current = null;
+      }, 400);
+    }
   });
 
   if (!currentDate) return null;

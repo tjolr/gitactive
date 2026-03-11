@@ -102,6 +102,11 @@ export function LandingPage({ onCommitsLoaded }: LandingPageProps) {
                 className={input}
                 disabled={loading}
               />
+              <p className={tokenHint}>
+                Fine-grained token: enable <strong>Contents: Read-only</strong> permission.
+                {" "}Classic token: enable the <strong>repo</strong> scope.
+                {" "}A token also raises the rate limit from 60 to 5,000 requests/hour.
+              </p>
             </div>
           )}
 
@@ -215,6 +220,16 @@ const input = css({
   },
   _disabled: {
     opacity: 0.5,
+  },
+});
+
+const tokenHint = css({
+  fontSize: "11px",
+  color: neutral[500],
+  lineHeight: "1.5",
+  margin: "0",
+  "& strong": {
+    color: neutral[400],
   },
 });
 
