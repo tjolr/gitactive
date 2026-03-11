@@ -48,7 +48,7 @@ function computeDirectories(files: CommitData["files"]): DirEntry[] {
   }
 
   const result: DirEntry[] = [];
-  for (const [top, children] of topLevel) {
+  for (const [, children] of topLevel) {
     if (children.length === 1) {
       result.push({ path: children[0], count: counts.get(children[0])! });
     } else {
