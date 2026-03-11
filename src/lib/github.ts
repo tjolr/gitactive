@@ -1,4 +1,4 @@
-import type { CheckRun, CommitData, RepoInfo } from "../types";
+import type { CommitData, RepoInfo } from "../types";
 
 export function parseRepoUrl(url: string): RepoInfo {
   // Handle formats:
@@ -143,59 +143,6 @@ export async function fetchCommitsSince(
   }
 
   return results;
-}
-
-interface GitHubCheckRunsResponse {
-  total_count: number;
-  check_runs: {
-    id: number;
-    name: string;
-    status: "queued" | "in_progress" | "completed";
-    conclusion: "success" | "failure" | "neutral" | "cancelled" | "skipped" | "timed_out" | "action_required" | null;
-  }[];
-}
-
-export async function fetchCheckRuns(
-  repoInfo: RepoInfo,
-  sha: string,
-  token?: string
-): Promise<CheckRun[]> {
-  const { owner, repo } = repoInfo;
-  const data = await fetchJSON<GitHubCheckRunsResponse>(
-    `https://api.github.com/repos/${owner}/${repo}/commits/${sha}/check-runs`,
-    token
-  );
-  return data.check_runs.map((cr) => ({
-    id: cr.id,
-    name: cr.name,
-    status: cr.status,
-    conclusion: cr.conclusion,
-  }));
-}
-
-export async function fetchCheckRunsBatch(
-  repoInfo: RepoInfo,
-  shas: string[],
-  token?: string
-): Promise<Map<string, CheckRun[]>> {
-  const result = new Map<string, CheckRun[]>();
-  for (let i = 0; i < shas.length; i += 5) {
-    const batch = shas.slice(i, i + 5);
-    const settled = await Promise.all(
-      batch.map(async (sha) => {
-        try {
-          const runs = await fetchCheckRuns(repoInfo, sha, token);
-          return { sha, runs };
-        } catch {
-          return { sha, runs: [] as CheckRun[] };
-        }
-      })
-    );
-    for (const { sha, runs } of settled) {
-      result.set(sha, runs);
-    }
-  }
-  return result;
 }
 
 export async function fetchCommits(

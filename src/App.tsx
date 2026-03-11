@@ -3,7 +3,7 @@ import type { CommitData, RepoInfo } from "./types";
 import { LandingPage } from "./components/LandingPage";
 import { SceneView } from "./components/SceneView";
 import { DevMenu } from "./components/DevMenu";
-import { parseRepoUrl, fetchCommits, fetchCommitsSince, fetchCheckRunsBatch } from "./lib/github";
+import { parseRepoUrl, fetchCommits, fetchCommitsSince } from "./lib/github";
 import { resetAuthorColors } from "./lib/colors";
 import { neutral, scene } from "./lib/palette";
 import { getRepoHistory, saveRepoToHistory } from "./lib/repoHistory";
@@ -48,40 +48,6 @@ function App() {
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Lazy-fetch check runs for commits that don't have them yet.
-  // We track which SHAs are already being fetched to avoid re-triggering.
-  const fetchingCheckRunsRef = useRef(new Set<string>());
-  useEffect(() => {
-    if (!commits || !repo) return;
-    const token = localStorage.getItem(LS_TOKEN) || undefined;
-    if (!token) return; // skip for unauthenticated users to preserve rate limits
-
-    const missing = commits
-      .filter((c) => c.checkRuns === undefined && !fetchingCheckRunsRef.current.has(c.sha))
-      .map((c) => c.sha);
-    if (missing.length === 0) return;
-
-    // Mark as in-flight
-    for (const sha of missing) fetchingCheckRunsRef.current.add(sha);
-
-    let cancelled = false;
-    fetchCheckRunsBatch(repo, missing, token).then((results) => {
-      if (cancelled) return;
-      setCommits((prev) => {
-        if (!prev) return prev;
-        return prev.map((c) => {
-          const runs = results.get(c.sha);
-          return runs !== undefined ? { ...c, checkRuns: runs } : c;
-        });
-      });
-    }).catch(() => {
-      // On failure, remove from in-flight so they can be retried
-      for (const sha of missing) fetchingCheckRunsRef.current.delete(sha);
-    });
-
-    return () => { cancelled = true; };
-  }, [commits, repo]);
 
   // Poll for new commits every 60s while viewing a repo
   useEffect(() => {
